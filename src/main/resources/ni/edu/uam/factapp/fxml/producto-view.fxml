@@ -1,14 +1,185 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.Button?>
 
-<AnchorPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="CONTROLLER_NAME"
-            prefHeight="400.0" prefWidth="600.0">
+<?import javafx.scene.control.CheckBox?>
 
-</AnchorPane>
+<?import javafx.scene.control.ComboBox?>
+
+<?import javafx.scene.control.Label?>
+
+<?import javafx.scene.control.TableColumn?>
+
+<?import javafx.scene.control.TableView?>
+
+<?import javafx.scene.control.TextField?>
+
+<?import javafx.scene.image.ImageView?>
+
+<?import javafx.scene.layout.BorderPane?>
+
+<?import javafx.scene.layout.GridPane?>
+
+<?import javafx.scene.layout.HBox?>
+
+<?import javafx.scene.layout.VBox?>
+
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ni.edu.uam.factapp.controller.ProductoController">
+
+    <top>
+        <VBox spacing="10">
+            <padding>
+                <Insets top="15" right="15" bottom="10" left="15"/>
+            </padding>
+
+            <Label text="Gestión de productos"
+                   style="-fx-font-size: 24px; -fx-font-weight: bold;"/>
+        </VBox>
+    </top>
+
+    <center>
+        <VBox spacing="15">
+            <padding>
+                <Insets top="10" right="15" bottom="15" left="15"/>
+            </padding>
+
+            <GridPane hgap="10" vgap="10">
+
+                <Label text="Código:"
+                       GridPane.columnIndex="0"
+                       GridPane.rowIndex="0"/>
+
+                <TextField fx:id="txtCodigo"
+                           promptText="Código único"
+                           GridPane.columnIndex="1"
+                           GridPane.rowIndex="0"/>
+
+                <Label text="Nombre:"
+                       GridPane.columnIndex="0"
+                       GridPane.rowIndex="1"/>
+
+                <TextField fx:id="txtNombre"
+                           promptText="Nombre del producto"
+                           GridPane.columnIndex="1"
+                           GridPane.rowIndex="1"/>
+
+                <Label text="Categoría:"
+                       GridPane.columnIndex="0"
+                       GridPane.rowIndex="2"/>
+
+                <ComboBox fx:id="cmbCategoria"
+                          promptText="Seleccione una categoría"
+                          prefWidth="250"
+                          GridPane.columnIndex="1"
+                          GridPane.rowIndex="2"/>
+
+                <Label text="Precio de venta:"
+                       GridPane.columnIndex="0"
+                       GridPane.rowIndex="3"/>
+
+                <TextField fx:id="txtPrecio"
+                           promptText="0.00"
+                           GridPane.columnIndex="1"
+                           GridPane.rowIndex="3"/>
+
+                <Label text="Existencia:"
+                       GridPane.columnIndex="0"
+                       GridPane.rowIndex="4"/>
+
+                <TextField fx:id="txtExistencia"
+                           promptText="Cantidad"
+                           GridPane.columnIndex="1"
+                           GridPane.rowIndex="4"/>
+
+                <Label text="Estado:"
+                       GridPane.columnIndex="0"
+                       GridPane.rowIndex="5"/>
+
+                <CheckBox fx:id="chkActivo"
+                          text="Producto activo"
+                          GridPane.columnIndex="1"
+                          GridPane.rowIndex="5"/>
+
+            </GridPane>
+
+            <HBox spacing="20">
+
+                <VBox spacing="8">
+                    <Label text="Imagen del producto"/>
+
+                    <ImageView fx:id="imgProducto"
+                               fitWidth="150"
+                               fitHeight="150"
+                               preserveRatio="true"/>
+
+                    <Button fx:id="btnImagen"
+                            text="Seleccionar imagen"
+                            onAction="#seleccionarImagen"/>
+                </VBox>
+
+                <VBox spacing="10"
+                      VBox.vgrow="ALWAYS">
+
+                    <Label text="Productos registrados"
+                           style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+
+                    <TableView fx:id="tblProductos"
+                               VBox.vgrow="ALWAYS">
+
+                        <columns>
+
+                            <TableColumn fx:id="colCodigo"
+                                         text="Código"
+                                         prefWidth="90"/>
+
+                            <TableColumn fx:id="colNombre"
+                                         text="Nombre"
+                                         prefWidth="150"/>
+
+                            <TableColumn fx:id="colCategoria"
+                                         text="Categoría"
+                                         prefWidth="120"/>
+
+                            <TableColumn fx:id="colPrecio"
+                                         text="Precio"
+                                         prefWidth="90"/>
+
+                            <TableColumn fx:id="colExistencia"
+                                         text="Existencia"
+                                         prefWidth="90"/>
+
+                            <TableColumn fx:id="colActivo"
+                                         text="Activo"
+                                         prefWidth="70"/>
+
+                        </columns>
+
+                    </TableView>
+
+                </VBox>
+
+            </HBox>
+
+            <HBox spacing="10"
+                  alignment="CENTER_RIGHT">
+
+                <Button fx:id="btnGuardar"
+                        text="Guardar"
+                        onAction="#guardar"
+                        prefWidth="100"/>
+
+                <Button fx:id="btnCerrar"
+                        text="Cerrar"
+                        onAction="#cerrar"
+                        prefWidth="100"/>
+
+            </HBox>
+
+        </VBox>
+    </center>
+
+</BorderPane>
