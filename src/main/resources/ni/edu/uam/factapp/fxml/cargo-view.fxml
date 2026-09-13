@@ -6,59 +6,59 @@
 <?import javafx.scene.text.*?>
 
 <BorderPane prefHeight="807.0" prefWidth="736.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ni.edu.uam.factapp.controller.CargoController">
-   <top>
-      <Label text="Gestión de Cargos" BorderPane.alignment="CENTER">
-         <font>
-            <Font name="System Bold" size="24.0" />
-         </font>
-         <padding>
-            <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
-         </padding>
-      </Label>
-   </top>
-   <center>
-      <VBox prefHeight="457.0" prefWidth="736.0" BorderPane.alignment="TOP_CENTER">
-         <children>
-            <GridPane vgap="10.0" VBox.vgrow="NEVER">
-              <columnConstraints>
-                <ColumnConstraints halignment="LEFT" hgrow="ALWAYS" maxWidth="151.0" minWidth="71.0" prefWidth="87.0" />
-                <ColumnConstraints halignment="RIGHT" hgrow="ALWAYS" maxWidth="455.0" minWidth="406.0" prefWidth="439.0" />
-              </columnConstraints>
-              <rowConstraints>
-                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="NEVER" />
-                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="NEVER" />
-              </rowConstraints>
-               <VBox.margin>
-                  <Insets left="40.0" right="40.0" />
-               </VBox.margin>
-               <children>
-                  <Label text="Nombre:" />
-                  <Label text="Descripcion:" GridPane.rowIndex="1" />
-                  <TextField prefHeight="0.0" prefWidth="455.0" GridPane.columnIndex="1" />
-                  <TextField prefHeight="0.0" prefWidth="455.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-               </children>
-               <padding>
-                  <Insets bottom="10.0" top="10.0" />
-               </padding>
-            </GridPane>
-            <HBox alignment="CENTER_RIGHT">
-               <children>
-                  <Button fx:id="btnAgregar" mnemonicParsing="false" text="Agregar" />
-               </children>
-               <VBox.margin>
-                  <Insets left="40.0" right="40.0" />
-               </VBox.margin>
-            </HBox>
-            <TableView fx:id="tblCargos" VBox.vgrow="ALWAYS">
-              <columns>
-                <TableColumn prefWidth="168.0" text="Nombre" />
-                <TableColumn prefWidth="391.0" text="Descripcion" />
-              </columns>
-               <VBox.margin>
-                  <Insets bottom="20.0" left="40.0" right="40.0" top="20.0" />
-               </VBox.margin>
-            </TableView>
-         </children>
-      </VBox>
-   </center>
+    <top>
+        <Label text="Gestión de Cargos" BorderPane.alignment="CENTER">
+            <font>
+                <Font name="System Bold" size="24.0" />
+            </font>
+            <padding>
+                <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+            </padding>
+        </Label>
+    </top>
+    <center>
+        <VBox prefHeight="457.0" prefWidth="736.0" BorderPane.alignment="TOP_CENTER">
+            <children>
+                <GridPane vgap="10.0" VBox.vgrow="NEVER">
+                    <columnConstraints>
+                        <ColumnConstraints halignment="LEFT" hgrow="ALWAYS" maxWidth="151.0" minWidth="71.0" prefWidth="87.0" />
+                        <ColumnConstraints halignment="RIGHT" hgrow="ALWAYS" maxWidth="455.0" minWidth="406.0" prefWidth="439.0" />
+                    </columnConstraints>
+                    <rowConstraints>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="NEVER" />
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="NEVER" />
+                    </rowConstraints>
+                    <VBox.margin>
+                        <Insets left="40.0" right="40.0" />
+                    </VBox.margin>
+                    <children>
+                        <Label text="Nombre:" />
+                        <Label text="Descripcion:" GridPane.rowIndex="1" />
+                        <TextField fx:id="txtNombre" prefHeight="0.0" prefWidth="455.0" GridPane.columnIndex="1" />
+                        <TextField fx:id="txtDescripcion" prefHeight="0.0" prefWidth="455.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                    </children>
+                    <padding>
+                        <Insets bottom="10.0" top="10.0" />
+                    </padding>
+                </GridPane>
+                <HBox alignment="CENTER_RIGHT">
+                    <children>
+                        <Button fx:id="btnAgregar" mnemonicParsing="false" onAction="#guardarCargo" text="Agregar" />
+                    </children>
+                    <VBox.margin>
+                        <Insets left="40.0" right="40.0" />
+                    </VBox.margin>
+                </HBox>
+                <TableView fx:id="tblCargos" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="colNombre" prefWidth="168.0" text="Nombre" />
+                        <TableColumn fx:id="colDescripcion" prefWidth="391.0" text="Descripcion" />
+                    </columns>
+                    <VBox.margin>
+                        <Insets bottom="20.0" left="40.0" right="40.0" top="20.0" />
+                    </VBox.margin>
+                </TableView>
+            </children>
+        </VBox>
+    </center>
 </BorderPane>
