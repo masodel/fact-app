@@ -2,11 +2,14 @@ package ni.edu.uam.factapp.dao;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import lombok.Getter;
 import ni.edu.uam.factapp.model.Cargo;
 
 public class CargoDAO {
 
     private static CargoDAO instance;
+    // Retorna la lista observable para enlazarla directamente a la TableView
+    @Getter
     private final ObservableList<Cargo> listaCargos;
     private int autoincrementId = 1;
 
@@ -26,11 +29,6 @@ public class CargoDAO {
         return instance;
     }
 
-    // Retorna la lista observable para enlazarla directamente a la TableView
-    public ObservableList<Cargo> getListaCargos() {
-        return listaCargos;
-    }
-
     // Agregar un nuevo cargo a la lista compartida
     public void agregarCargo(Cargo cargo) {
         if (cargo.getId() == null) {
@@ -38,4 +36,10 @@ public class CargoDAO {
         }
         this.listaCargos.add(cargo);
     }
+    // Verificar si existe un cargo registrado con el mismo nombre
+    public boolean existeNombre(String nombre) {
+        return listaCargos.stream()
+                .anyMatch(c -> c.getNombre().equalsIgnoreCase(nombre.trim()));
+    }
+
 }

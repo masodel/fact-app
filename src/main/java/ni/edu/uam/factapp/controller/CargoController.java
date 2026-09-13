@@ -50,6 +50,16 @@ public class CargoController implements Initializable {
             return;
         }
 
+        if (cargoDAO.existeNombre(nombre)) {
+            mostrarAlerta(
+                    "Cargo Duplicado",
+                    "Ya existe un cargo registrado con el nombre '" + nombre + "'.",
+                    Alert.AlertType.ERROR
+            );
+            txtNombre.requestFocus();
+            return;
+        }
+
         // Crear y guardar el nuevo cargo en el DAO
         Cargo nuevoCargo = new Cargo(null, nombre, descripcion);
         cargoDAO.agregarCargo(nuevoCargo);

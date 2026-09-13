@@ -1,14 +1,64 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
+<?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
 
-<AnchorPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="ni.edu.uam.factapp.controller.CategoriaController"
-            prefHeight="400.0" prefWidth="600.0">
-
-</AnchorPane>
+<BorderPane prefHeight="807.0" prefWidth="736.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ni.edu.uam.factapp.controller.CategoriaController">
+    <top>
+        <Label text="Gestión de Categorías" BorderPane.alignment="CENTER">
+            <font>
+                <Font name="System Bold" size="24.0" />
+            </font>
+            <padding>
+                <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+            </padding>
+        </Label>
+    </top>
+    <center>
+        <VBox prefHeight="457.0" prefWidth="736.0" BorderPane.alignment="TOP_CENTER">
+            <children>
+                <GridPane vgap="10.0" VBox.vgrow="NEVER">
+                    <columnConstraints>
+                        <ColumnConstraints halignment="LEFT" hgrow="ALWAYS" maxWidth="151.0" minWidth="71.0" prefWidth="87.0" />
+                        <ColumnConstraints halignment="LEFT" hgrow="ALWAYS" maxWidth="455.0" minWidth="406.0" prefWidth="439.0" />
+                    </columnConstraints>
+                    <rowConstraints>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="NEVER" />
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="NEVER" />
+                    </rowConstraints>
+                    <VBox.margin>
+                        <Insets left="40.0" right="40.0" />
+                    </VBox.margin>
+                    <children>
+                        <Label text="Nombre:" />
+                        <Label text="Estado:" GridPane.rowIndex="1" />
+                        <TextField fx:id="txtNombre" prefHeight="0.0" prefWidth="455.0" GridPane.columnIndex="1" />
+                        <CheckBox fx:id="chkActiva" mnemonicParsing="false" selected="true" text="Activa" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                    </children>
+                    <padding>
+                        <Insets bottom="10.0" top="10.0" />
+                    </padding>
+                </GridPane>
+                <HBox alignment="CENTER_RIGHT">
+                    <children>
+                        <Button fx:id="btnAgregar" mnemonicParsing="false" onAction="#guardarCategoria" text="Agregar" />
+                    </children>
+                    <VBox.margin>
+                        <Insets left="40.0" right="40.0" />
+                    </VBox.margin>
+                </HBox>
+                <TableView fx:id="tblCategorias" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="colNombre" prefWidth="350.0" text="Nombre" />
+                        <TableColumn fx:id="colActiva" prefWidth="200.0" text="Estado" />
+                    </columns>
+                    <VBox.margin>
+                        <Insets bottom="20.0" left="40.0" right="40.0" top="20.0" />
+                    </VBox.margin>
+                </TableView>
+            </children>
+        </VBox>
+    </center>
+</BorderPane>
