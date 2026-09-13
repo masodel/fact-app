@@ -14,8 +14,6 @@
                     <Menu text="Archivo">
                         <items>
                             <MenuItem fx:id="mnuProductos" onAction="#abrirProductos" text="Productos" />
-
-                            <MenuItem fx:id="mnuSalir" onAction="#salir" text="Salir" />
                         </items>
                     </Menu>
                 </menus>
@@ -31,7 +29,7 @@
                         </image>
                      </ImageView>
                   </graphic></Button>
-               <Button fx:id="btnCategoria" layoutX="10.0" layoutY="10.0" onAction="#abrirProductos">
+               <Button fx:id="btnCategoria" layoutX="10.0" layoutY="10.0" onAction="#abrirCategoria">
                   <graphic>
                      <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
                         <image>
@@ -40,7 +38,7 @@
                      </ImageView>
                   </graphic>
                </Button>
-               <Button fx:id="btnCargo" layoutX="62.0" layoutY="10.0" onAction="#abrirProductos">
+               <Button fx:id="btnCargo" layoutX="62.0" layoutY="10.0" onAction="#abrirCargo">
                   <graphic>
                      <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
                         <image>

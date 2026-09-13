@@ -1,6 +1,5 @@
 package ni.edu.uam.factapp.controller;
 
-import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
@@ -32,25 +31,49 @@ public class MenuPrincipalController {
         }
     }
 
-
     @FXML
-    private void salir() {
+    private void abrirCategoria() {
 
-        Alert alerta = new Alert(
-                Alert.AlertType.CONFIRMATION,
-                "¿Desea cerrar la aplicación?",
-                ButtonType.OK,
-                ButtonType.CANCEL
-        );
+        try {
 
-        alerta.setTitle("Salir");
-        alerta.setHeaderText("Confirmar salida");
+            SceneManager.abrirVentana(
+                    "/ni/edu/uam/factapp/fxml/categoria-view.fxml",
+                    "Gestion de categorias"
+            );
 
-        if (alerta.showAndWait()
-                .orElse(ButtonType.CANCEL) == ButtonType.OK) {
+        } catch (IOException e) {
 
-            Platform.exit();
+            Alert alerta = new Alert(
+                    Alert.AlertType.ERROR,
+                    "No fue posible abrir el módulo de categorias.",
+                    ButtonType.OK
+            );
+
+            alerta.showAndWait();
         }
     }
+
+    @FXML
+    private void abrirCargo() {
+
+        try {
+
+            SceneManager.abrirVentana(
+                    "/ni/edu/uam/factapp/fxml/cargo-view.fxml",
+                    "Gestion de cargos"
+            );
+
+        } catch (IOException e) {
+
+            Alert alerta = new Alert(
+                    Alert.AlertType.ERROR,
+                    "No fue posible abrir el módulo de cargo.",
+                    ButtonType.OK
+            );
+
+            alerta.showAndWait();
+        }
+    }
+
 
 }
