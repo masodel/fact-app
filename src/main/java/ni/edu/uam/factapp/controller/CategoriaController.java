@@ -32,7 +32,7 @@ public class CategoriaController implements Initializable {
 
         // Formatear el boolean activa a un texto legible ("Activa" / "Inactiva")
         colActiva.setCellValueFactory(cellData ->
-                new SimpleStringProperty(cellData.getValue().isActiva() ? "Activa" : "Inactiva")
+                new SimpleStringProperty(cellData.getValue().isActiva() ? "Si" : "No")
         );
 
         // Enlazar la lista observable a la tabla

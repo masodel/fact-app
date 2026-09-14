@@ -14,7 +14,9 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.collections.transformation.FilteredList;
 
+import ni.edu.uam.factapp.dao.CategoriaDAO;
 import ni.edu.uam.factapp.dao.ProductoDAO;
 import ni.edu.uam.factapp.model.Categoria;
 import ni.edu.uam.factapp.model.Producto;
@@ -46,12 +48,6 @@ public class ProductoController {
     @FXML
     private void initialize() {
 
-        cmbCategoria.setItems(FXCollections.observableArrayList(
-                new Categoria(1, "Alimentos", true),
-                new Categoria(2, "Bebidas", true),
-                new Categoria(3, "Limpieza", true)
-        ));
-
         colCodigo.setCellValueFactory(new PropertyValueFactory<>("codigo"));
         colNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
         colCategoria.setCellValueFactory(new PropertyValueFactory<>("categoria"));
@@ -62,6 +58,13 @@ public class ProductoController {
                         cellData.getValue().isActivo() ? "Sí" : "No"
                 )
         );
+
+        FilteredList<Categoria> categoriasActivas = new FilteredList<>(
+                CategoriaDAO.getInstance().getListaCategorias(),
+                Categoria::isActiva
+        );
+
+        cmbCategoria.setItems(categoriasActivas);
 
         // Vincula el TableView directamente a la lista única del DAO
         tblProductos.setItems(productoDAO.getProductos());

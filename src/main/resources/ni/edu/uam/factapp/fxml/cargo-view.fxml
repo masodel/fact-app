@@ -50,9 +50,12 @@
                     </VBox.margin>
                 </HBox>
                 <TableView fx:id="tblCargos" VBox.vgrow="ALWAYS">
+                    <columnResizePolicy>
+                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                    </columnResizePolicy>
                     <columns>
                         <TableColumn fx:id="colNombre" prefWidth="168.0" text="Nombre" />
-                        <TableColumn fx:id="colDescripcion" prefWidth="391.0" text="Descripcion" />
+                        <TableColumn fx:id="colDescripcion" prefWidth="421.0" text="Descripcion" />
                     </columns>
                     <VBox.margin>
                         <Insets bottom="20.0" left="40.0" right="40.0" top="20.0" />

@@ -14,6 +14,9 @@
                     <Menu text="Archivo">
                         <items>
                             <MenuItem fx:id="mnuProductos" onAction="#abrirProductos" text="Productos" />
+                            <MenuItem fx:id="mnuCategoria" onAction="#abrirCategoria" text="Categoria" />
+                            <MenuItem fx:id="mnuCargo" onAction="#abrirCargo" text="Cargo" />
+                            <MenuItem fx:id="mnuEmpleado" onAction="#abrirEmpleado" text="Empleado" />
                         </items>
                     </Menu>
                 </menus>
@@ -22,14 +25,21 @@
             <ToolBar>
                 <items>
                     <Button fx:id="btnProductos" onAction="#abrirProductos">
-                  <graphic>
-                     <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
-                        <image>
-                           <Image url="@../icons/product.png" />
-                        </image>
-                     </ImageView>
-                  </graphic></Button>
+                        <tooltip>
+                            <Tooltip text="Gestión de Productos" />
+                        </tooltip>
+                        <graphic>
+                            <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
+                                <image>
+                                    <Image url="@../icons/product.png" />
+                                </image>
+                            </ImageView>
+                        </graphic>
+                    </Button>
                <Button fx:id="btnCategoria" layoutX="10.0" layoutY="10.0" onAction="#abrirCategoria">
+                   <tooltip>
+                       <Tooltip text="Gestión de Categorías" />
+                   </tooltip>
                   <graphic>
                      <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
                         <image>
@@ -39,6 +49,9 @@
                   </graphic>
                </Button>
                <Button fx:id="btnCargo" layoutX="62.0" layoutY="10.0" onAction="#abrirCargo">
+                   <tooltip>
+                       <Tooltip text="Gestión de Cargo" />
+                   </tooltip>
                   <graphic>
                      <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
                         <image>
@@ -47,7 +60,10 @@
                      </ImageView>
                   </graphic>
                </Button>
-               <Button fx:id="btnEmpleado" layoutX="114.0" layoutY="10.0" onAction="#abrirProductos">
+               <Button fx:id="btnEmpleado" layoutX="114.0" layoutY="10.0" onAction="#abrirEmpleado">
+                   <tooltip>
+                       <Tooltip text="Gestión de Empleado" />
+                   </tooltip>
                   <graphic>
                      <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
                         <image>

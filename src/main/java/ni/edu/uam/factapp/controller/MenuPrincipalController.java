@@ -75,5 +75,27 @@ public class MenuPrincipalController {
         }
     }
 
+    @FXML
+    private void abrirEmpleado() {
+
+        try {
+
+            SceneManager.abrirVentana(
+                    "/ni/edu/uam/factapp/fxml/empleado-view.fxml",
+                    "Gestion de Empleados"
+            );
+
+        } catch (IOException e) {
+
+            Alert alerta = new Alert(
+                    Alert.AlertType.ERROR,
+                    "No fue posible abrir el módulo de Empleado.",
+                    ButtonType.OK
+            );
+
+            alerta.showAndWait();
+        }
+    }
+
 
 }

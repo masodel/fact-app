@@ -50,6 +50,9 @@
                     </VBox.margin>
                 </HBox>
                 <TableView fx:id="tblCategorias" VBox.vgrow="ALWAYS">
+                    <columnResizePolicy>
+                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                    </columnResizePolicy>
                     <columns>
                         <TableColumn fx:id="colNombre" prefWidth="350.0" text="Nombre" />
                         <TableColumn fx:id="colActiva" prefWidth="200.0" text="Estado" />
