@@ -1,6 +1,7 @@
 module ni.edu.uam.factapp {
     requires javafx.controls;
     requires javafx.fxml;
+    requires java.sql;
 
     requires static lombok;
 
