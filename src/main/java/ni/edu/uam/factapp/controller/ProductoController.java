@@ -1,26 +1,19 @@
 package ni.edu.uam.factapp.controller;
 
 import javafx.collections.FXCollections;
+import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import javafx.collections.transformation.FilteredList;
 
 import ni.edu.uam.factapp.dao.CategoriaDAO;
 import ni.edu.uam.factapp.dao.ProductoDAO;
 import ni.edu.uam.factapp.model.Categoria;
 import ni.edu.uam.factapp.model.Producto;
-import ni.edu.uam.factapp.util.DialogoBuscar;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -35,6 +28,11 @@ public class ProductoController {
     @FXML private CheckBox chkActivo;
     @FXML private ImageView imgProducto;
 
+    // Componentes del HBox de Filtro y Búsqueda
+    @FXML private ComboBox<String> cmbFiltroOpciones;
+    @FXML private ComboBox<Categoria> cmbFiltroCategoria;
+    @FXML private TextField txtBuscar;
+
     @FXML private TableView<Producto> tblProductos;
     @FXML private TableColumn<Producto, String> colCodigo;
     @FXML private TableColumn<Producto, String> colNombre;
@@ -44,11 +42,11 @@ public class ProductoController {
     @FXML private TableColumn<Producto, String> colActivo;
 
     private final ProductoDAO productoDAO = ProductoDAO.getInstance();
+    private FilteredList<Producto> productosFiltrados;
     private String rutaImagen;
 
     @FXML
     private void initialize() {
-
         colCodigo.setCellValueFactory(new PropertyValueFactory<>("codigo"));
         colNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
         colCategoria.setCellValueFactory(new PropertyValueFactory<>("categoria"));
@@ -60,22 +58,114 @@ public class ProductoController {
                 )
         );
 
+        // Cargar categorías activas para el ComboBox del formulario
         FilteredList<Categoria> categoriasActivas = new FilteredList<>(
                 CategoriaDAO.getInstance().getListaCategorias(),
                 Categoria::isActiva
         );
-
         cmbCategoria.setItems(categoriasActivas);
 
-        // Vincula el TableView directamente a la lista única del DAO
-        tblProductos.setItems(productoDAO.getProductos());
+        // Estructura: ObservableList -> FilteredList -> TableView
+        productosFiltrados = new FilteredList<>(productoDAO.getProductos(), p -> true);
+        tblProductos.setItems(productosFiltrados);
+
+        // Opciones del ComboBox de filtros según la guía
+        cmbFiltroOpciones.setItems(FXCollections.observableArrayList(
+                "Todos los productos",
+                "Productos activos",
+                "Productos inactivos",
+                "Por categoría"
+        ));
+        cmbFiltroOpciones.getSelectionModel().selectFirst();
+
+        // Cargar lista de categorías en el ComboBox secundario de filtro
+        cmbFiltroCategoria.setItems(CategoriaDAO.getInstance().getListaCategorias());
+
+        // Mostrar u ocultar el ComboBox de categorías según la opción seleccionada
+        cmbFiltroOpciones.valueProperty().addListener((obs, oldVal, newVal) -> {
+            boolean esPorCategoria = "Por categoría".equals(newVal);
+            cmbFiltroCategoria.setVisible(esPorCategoria);
+            cmbFiltroCategoria.setManaged(esPorCategoria);
+            aplicarFiltrosCombinados();
+        });
+
+        cmbFiltroCategoria.valueProperty().addListener((obs, oldVal, newVal) -> aplicarFiltrosCombinados());
+
+        // Búsqueda en tiempo real mientras se escribe
+        txtBuscar.textProperty().addListener((obs, oldVal, newVal) -> aplicarFiltrosCombinados());
 
         chkActivo.setSelected(true);
     }
 
+    /**
+     * Aplica simultáneamente el filtro seleccionado y la búsqueda dinámica.
+     */
+    private void aplicarFiltrosCombinados() {
+        productosFiltrados.setPredicate(producto -> {
+            if (producto == null) return false;
+
+            // 1. Evaluar el Criterio del Filtro
+            String opcionFiltro = cmbFiltroOpciones.getValue();
+            boolean cumpleFiltro = true;
+
+            if ("Productos activos".equals(opcionFiltro)) {
+                cumpleFiltro = producto.isActivo();
+            } else if ("Productos inactivos".equals(opcionFiltro)) {
+                cumpleFiltro = !producto.isActivo();
+            } else if ("Por categoría".equals(opcionFiltro)) {
+                Categoria catSeleccionada = cmbFiltroCategoria.getValue();
+                if (catSeleccionada != null) {
+                    cumpleFiltro = producto.getCategoria() != null
+                            && producto.getCategoria().getId().equals(catSeleccionada.getId());
+                } else {
+                    cumpleFiltro = true; // Si no ha elegido categoría aún, muestra todos los de esa rama
+                }
+            }
+
+            if (!cumpleFiltro) {
+                return false;
+            }
+
+            // 2. Evaluar el Criterio de Búsqueda
+            String textoBusqueda = txtBuscar.getText();
+            if (textoBusqueda == null || textoBusqueda.trim().isEmpty()) {
+                return true;
+            }
+
+            textoBusqueda = textoBusqueda.trim();
+
+            // Si el texto inicia con un dígito, se asume búsqueda por ID
+            if (Character.isDigit(textoBusqueda.charAt(0))) {
+                if (producto.getId() != null) {
+                    return String.valueOf(producto.getId()).startsWith(textoBusqueda);
+                }
+                return false;
+            } else {
+                // De lo contrario, se asume búsqueda por Nombre
+                if (producto.getNombre() != null) {
+                    return producto.getNombre().toLowerCase().contains(textoBusqueda.toLowerCase());
+                }
+                return false;
+            }
+        });
+    }
+
+    @FXML
+    private void refrescar() {
+        CategoriaDAO.getInstance().cargarCategoriasDesdeBD();
+        productoDAO.cargarProductosDesdeBD();
+        cmbFiltroCategoria.setItems(CategoriaDAO.getInstance().getListaCategorias());
+
+        // Limpiar controles de filtro y búsqueda
+        cmbFiltroOpciones.getSelectionModel().selectFirst();
+        cmbFiltroCategoria.getSelectionModel().clearSelection();
+        txtBuscar.clear();
+
+        limpiar();
+    }
+
     @FXML
     private void seleccionarImagen() {
-
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Seleccionar imagen del producto");
         chooser.getExtensionFilters().add(
@@ -94,7 +184,6 @@ public class ProductoController {
 
     @FXML
     private void guardar() {
-
         if (txtCodigo.getText().isBlank()
                 || txtNombre.getText().isBlank()
                 || txtPrecio.getText().isBlank()
@@ -106,7 +195,6 @@ public class ProductoController {
         }
 
         try {
-
             BigDecimal precio = new BigDecimal(txtPrecio.getText().trim());
             int existencia = Integer.parseInt(txtExistencia.getText().trim());
 
@@ -126,21 +214,13 @@ public class ProductoController {
                     chkActivo.isSelected()
             );
 
-            // Se agrega al DAO, lo que notifica automáticamente a la vista
             productoDAO.agregar(producto);
-
             mensaje(Alert.AlertType.INFORMATION, "Producto agregado correctamente.");
             limpiar();
 
         } catch (NumberFormatException e) {
             mensaje(Alert.AlertType.ERROR, "Precio o existencia no válidos.");
         }
-    }
-
-    @FXML
-    private void cerrar() {
-        Stage stage = (Stage) txtCodigo.getScene().getWindow();
-        stage.close();
     }
 
     private void limpiar() {
@@ -156,80 +236,5 @@ public class ProductoController {
 
     private void mensaje(Alert.AlertType tipo, String texto) {
         new Alert(tipo, texto, ButtonType.OK).showAndWait();
-    }
-
-    @FXML
-    private void refrescar() {
-        CategoriaDAO.getInstance().cargarCategoriasDesdeBD();
-        productoDAO.cargarProductosDesdeBD();
-    }
-
-    @FXML
-    private void buscarProducto() {
-        DialogoBuscar.ResultadoBusqueda res = DialogoBuscar.mostrar("Producto");
-        if (res == null) return;
-
-        Producto encontrado = null;
-
-        if (res.getCriterio() == DialogoBuscar.CriterioBusqueda.ID) {
-            try {
-                int id = Integer.parseInt(res.getValor());
-                encontrado = productoDAO.getProductos().stream()
-                        .filter(p -> p.getId() != null && p.getId() == id)
-                        .findFirst()
-                        .orElse(null);
-            } catch (NumberFormatException e) {
-                mensaje(Alert.AlertType.ERROR, "El ID ingresado debe ser un número entero válido.");
-                return;
-            }
-        } else {
-            encontrado = productoDAO.getProductos().stream()
-                    .filter(p -> p.getNombre() != null && p.getNombre().equalsIgnoreCase(res.getValor()))
-                    .findFirst()
-                    .orElse(null);
-        }
-
-        if (encontrado != null) {
-            // Cargar todos los atributos en los campos de la interfaz
-            txtCodigo.setText(encontrado.getCodigo());
-            txtNombre.setText(encontrado.getNombre());
-            cmbCategoria.setValue(encontrado.getCategoria());
-            txtPrecio.setText(encontrado.getPrecioVenta() != null ? encontrado.getPrecioVenta().toString() : "0.00");
-            txtExistencia.setText(String.valueOf(encontrado.getExistencia()));
-            chkActivo.setSelected(encontrado.isActivo());
-
-            if (encontrado.getRutaImagen() != null && !encontrado.getRutaImagen().isBlank()) {
-                this.rutaImagen = encontrado.getRutaImagen();
-                try {
-                    imgProducto.setImage(new Image(rutaImagen));
-                } catch (Exception e) {
-                    imgProducto.setImage(null);
-                }
-            } else {
-                imgProducto.setImage(null);
-                this.rutaImagen = null;
-            }
-
-            // Seleccionar y enfocar en la TableView
-            tblProductos.getSelectionModel().select(encontrado);
-            tblProductos.scrollTo(encontrado);
-
-            // Mostrar todos los atributos
-            String detalles = String.format(
-                    "Producto Encontrado:\n\nID: %d\nCódigo: %s\nNombre: %s\nCategoría: %s\nPrecio Venta: %s\nExistencia: %d\nRuta Imagen: %s\nEstado: %s",
-                    encontrado.getId(),
-                    encontrado.getCodigo(),
-                    encontrado.getNombre(),
-                    encontrado.getCategoria() != null ? encontrado.getCategoria().getNombre() : "Sin Categoría",
-                    encontrado.getPrecioVenta(),
-                    encontrado.getExistencia(),
-                    encontrado.getRutaImagen() != null ? encontrado.getRutaImagen() : "Ninguna",
-                    encontrado.isActivo() ? "Activo" : "Inactivo"
-            );
-
-            mensaje(Alert.AlertType.INFORMATION, detalles);
-        } else {
-            mensaje(Alert.AlertType.ERROR, "No se encontró ningún producto con los datos ingresados.");
-        }
     }
 }

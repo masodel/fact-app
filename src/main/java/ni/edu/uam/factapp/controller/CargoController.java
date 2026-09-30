@@ -1,12 +1,13 @@
 package ni.edu.uam.factapp.controller;
 
+import javafx.collections.FXCollections;
+import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import ni.edu.uam.factapp.dao.CargoDAO;
 import ni.edu.uam.factapp.model.Cargo;
-import ni.edu.uam.factapp.util.DialogoBuscar;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -15,113 +16,103 @@ public class CargoController implements Initializable {
 
     @FXML private TextField txtNombre;
     @FXML private TextField txtDescripcion;
-    @FXML private Button btnAgregar;
+
+    @FXML private ComboBox<String> cmbFiltroOpciones;
+    @FXML private TextField txtBuscar;
 
     @FXML private TableView<Cargo> tblCargos;
     @FXML private TableColumn<Cargo, String> colNombre;
     @FXML private TableColumn<Cargo, String> colDescripcion;
 
     private CargoDAO cargoDAO;
+    private FilteredList<Cargo> cargosFiltrados;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        // Obtener la instancia compartida del DAO
         cargoDAO = CargoDAO.getInstance();
 
-        // Mapear los atributos del modelo Cargo a las columnas de la tabla
         colNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
         colDescripcion.setCellValueFactory(new PropertyValueFactory<>("descripcion"));
 
-        // Enlazar la lista observable del DAO con la TableView
-        tblCargos.setItems(cargoDAO.getListaCargos());
+        // Estructura: ObservableList -> FilteredList -> TableView
+        cargosFiltrados = new FilteredList<>(cargoDAO.getListaCargos(), c -> true);
+        tblCargos.setItems(cargosFiltrados);
+
+        // Opciones de Filtro
+        cmbFiltroOpciones.setItems(FXCollections.observableArrayList(
+                "Todos los cargos"
+        ));
+        cmbFiltroOpciones.getSelectionModel().selectFirst();
+
+        // Listeners para filtro y búsqueda automática en tiempo real
+        cmbFiltroOpciones.valueProperty().addListener((obs, oldVal, newVal) -> aplicarFiltrosCombinados());
+        txtBuscar.textProperty().addListener((obs, oldVal, newVal) -> aplicarFiltrosCombinados());
+    }
+
+    private void aplicarFiltrosCombinados() {
+        cargosFiltrados.setPredicate(cargo -> {
+            if (cargo == null) return false;
+
+            // 1. Criterio de Filtro (Reservado para extensiones)
+            boolean cumpleFiltro = true;
+
+            if (!cumpleFiltro) return false;
+
+            // 2. Criterio de Búsqueda
+            String textoBusqueda = txtBuscar.getText();
+            if (textoBusqueda == null || textoBusqueda.trim().isEmpty()) {
+                return true;
+            }
+
+            textoBusqueda = textoBusqueda.trim();
+
+            // Si inicia con un número, busca por ID
+            if (Character.isDigit(textoBusqueda.charAt(0))) {
+                if (cargo.getId() != null) {
+                    return String.valueOf(cargo.getId()).startsWith(textoBusqueda);
+                }
+                return false;
+            } else { // Si es letra, busca por Nombre
+                if (cargo.getNombre() != null) {
+                    return cargo.getNombre().toLowerCase().contains(textoBusqueda.toLowerCase());
+                }
+                return false;
+            }
+        });
     }
 
     @FXML
     private void guardarCargo() {
-        String nombre = txtNombre.getText().trim();
-        String descripcion = txtDescripcion.getText().trim();
-
-        // Validar que ambos campos tengan información
-        if (nombre.isEmpty() || descripcion.isEmpty()) {
-            mostrarAlerta(
-                    "Campos Incompletos",
-                    "Por favor completa tanto el nombre como la descripción del cargo.",
-                    Alert.AlertType.WARNING
-            );
+        if (txtNombre.getText().isBlank()) {
+            mensaje(Alert.AlertType.WARNING, "Ingrese el nombre del cargo.");
             return;
         }
 
-        if (cargoDAO.existeNombre(nombre)) {
-            mostrarAlerta(
-                    "Cargo Duplicado",
-                    "Ya existe un cargo registrado con el nombre '" + nombre + "'.",
-                    Alert.AlertType.ERROR
-            );
-            txtNombre.requestFocus();
-            return;
-        }
+        Cargo cargo = new Cargo(
+                null,
+                txtNombre.getText().trim(),
+                txtDescripcion.getText().trim()
+        );
 
-        // Crear y guardar el nuevo cargo en el DAO
-        Cargo nuevoCargo = new Cargo(null, nombre, descripcion);
-        cargoDAO.agregarCargo(nuevoCargo);
-
-        limpiarCampos();
+        cargoDAO.agregarCargo(cargo);
+        mensaje(Alert.AlertType.INFORMATION, "Cargo agregado correctamente.");
+        limpiar();
     }
 
     @FXML
-    private void buscarCargo() {
-        DialogoBuscar.ResultadoBusqueda res = DialogoBuscar.mostrar("Cargo");
-        if (res == null) return;
-
-        Cargo encontrado = null;
-
-        if (res.getCriterio() == DialogoBuscar.CriterioBusqueda.ID) {
-            try {
-                int id = Integer.parseInt(res.getValor());
-                encontrado = cargoDAO.getListaCargos().stream()
-                        .filter(c -> c.getId() != null && c.getId() == id)
-                        .findFirst()
-                        .orElse(null);
-            } catch (NumberFormatException e) {
-                mostrarAlerta("Error de Formato", "El ID ingresado debe ser un número entero válido.", Alert.AlertType.ERROR);
-                return;
-            }
-        } else {
-            encontrado = cargoDAO.getListaCargos().stream()
-                    .filter(c -> c.getNombre() != null && c.getNombre().equalsIgnoreCase(res.getValor()))
-                    .findFirst()
-                    .orElse(null);
-        }
-
-        if (encontrado != null) {
-            // Cargar todos los atributos en el formulario
-            txtNombre.setText(encontrado.getNombre());
-            txtDescripcion.setText(encontrado.getDescripcion());
-
-            // Seleccionar y enfocar el registro en la tabla
-            tblCargos.getSelectionModel().select(encontrado);
-            tblCargos.scrollTo(encontrado);
-
-            // Mostrar todos los atributos
-            String info = String.format("Cargo Encontrado:\n\nID: %d\nNombre: %s\nDescripción: %s",
-                    encontrado.getId(), encontrado.getNombre(), encontrado.getDescripcion());
-            mostrarAlerta("Resultado de Búsqueda", info, Alert.AlertType.INFORMATION);
-        } else {
-            mostrarAlerta("No Encontrado", "No se encontró ningún cargo con los datos proporcionados.", Alert.AlertType.ERROR);
-        }
+    private void refrescar() {
+        cargoDAO.cargarCargosDesdeBD();
+        cmbFiltroOpciones.getSelectionModel().selectFirst();
+        txtBuscar.clear();
+        limpiar();
     }
 
-    private void limpiarCampos() {
+    private void limpiar() {
         txtNombre.clear();
         txtDescripcion.clear();
-        txtNombre.requestFocus();
     }
 
-    private void mostrarAlerta(String titulo, String mensaje, Alert.AlertType tipo) {
-        Alert alert = new Alert(tipo);
-        alert.setTitle(titulo);
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
+    private void mensaje(Alert.AlertType tipo, String texto) {
+        new Alert(tipo, texto, ButtonType.OK).showAndWait();
     }
 }

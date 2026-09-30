@@ -1,13 +1,14 @@
 package ni.edu.uam.factapp.controller;
 
 import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import ni.edu.uam.factapp.dao.CategoriaDAO;
 import ni.edu.uam.factapp.model.Categoria;
-import ni.edu.uam.factapp.util.DialogoBuscar;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -16,121 +17,114 @@ public class CategoriaController implements Initializable {
 
     @FXML private TextField txtNombre;
     @FXML private CheckBox chkActiva;
-    @FXML private Button btnAgregar;
+
+    @FXML private ComboBox<String> cmbFiltroOpciones;
+    @FXML private TextField txtBuscar;
 
     @FXML private TableView<Categoria> tblCategorias;
     @FXML private TableColumn<Categoria, String> colNombre;
     @FXML private TableColumn<Categoria, String> colActiva;
 
     private CategoriaDAO categoriaDAO;
+    private FilteredList<Categoria> categoriasFiltradas;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         categoriaDAO = CategoriaDAO.getInstance();
 
-        // Mapear nombre
         colNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
-
-        // Formatear el boolean activa a un texto legible ("Activa" / "Inactiva")
         colActiva.setCellValueFactory(cellData ->
-                new SimpleStringProperty(cellData.getValue().isActiva() ? "Si" : "No")
+                new SimpleStringProperty(cellData.getValue().isActiva() ? "Sí" : "No")
         );
 
-        // Enlazar la lista observable a la tabla
-        tblCategorias.setItems(categoriaDAO.getListaCategorias());
+        // Estructura: ObservableList -> FilteredList -> TableView
+        categoriasFiltradas = new FilteredList<>(categoriaDAO.getListaCategorias(), c -> true);
+        tblCategorias.setItems(categoriasFiltradas);
+
+        // Configuración de Filtros
+        cmbFiltroOpciones.setItems(FXCollections.observableArrayList(
+                "Todas las categorías",
+                "Categorías activas",
+                "Categorías inactivas"
+        ));
+        cmbFiltroOpciones.getSelectionModel().selectFirst();
+
+        // Listeners para filtro y búsqueda automática en tiempo real
+        cmbFiltroOpciones.valueProperty().addListener((obs, oldVal, newVal) -> aplicarFiltrosCombinados());
+        txtBuscar.textProperty().addListener((obs, oldVal, newVal) -> aplicarFiltrosCombinados());
+    }
+
+    private void aplicarFiltrosCombinados() {
+        categoriasFiltradas.setPredicate(categoria -> {
+            if (categoria == null) return false;
+
+            // 1. Criterio de Estado (Filtro)
+            String opcionFiltro = cmbFiltroOpciones.getValue();
+            boolean cumpleFiltro = true;
+
+            if ("Categorías activas".equals(opcionFiltro)) {
+                cumpleFiltro = categoria.isActiva();
+            } else if ("Categorías inactivas".equals(opcionFiltro)) {
+                cumpleFiltro = !categoria.isActiva();
+            }
+
+            if (!cumpleFiltro) return false;
+
+            // 2. Criterio de Búsqueda
+            String textoBusqueda = txtBuscar.getText();
+            if (textoBusqueda == null || textoBusqueda.trim().isEmpty()) {
+                return true;
+            }
+
+            textoBusqueda = textoBusqueda.trim();
+
+            // Si inicia con un número, busca por ID
+            if (Character.isDigit(textoBusqueda.charAt(0))) {
+                if (categoria.getId() != null) {
+                    return String.valueOf(categoria.getId()).startsWith(textoBusqueda);
+                }
+                return false;
+            } else { // Si es letra, busca por Nombre
+                if (categoria.getNombre() != null) {
+                    return categoria.getNombre().toLowerCase().contains(textoBusqueda.toLowerCase());
+                }
+                return false;
+            }
+        });
     }
 
     @FXML
     private void guardarCategoria() {
-        String nombre = txtNombre.getText().trim();
-        boolean activa = chkActiva.isSelected();
-
-        // 1. Validación de nombre vacío
-        if (nombre.isEmpty()) {
-            mostrarAlerta(
-                    "Campo Incompleto",
-                    "El campo nombre de la categoría no puede estar vacío.",
-                    Alert.AlertType.WARNING
-            );
+        if (txtNombre.getText().isBlank()) {
+            mensaje(Alert.AlertType.WARNING, "Ingrese el nombre de la categoría.");
             return;
         }
 
-        // 2. Validación de duplicados
-        if (categoriaDAO.existeNombre(nombre)) {
-            mostrarAlerta(
-                    "Categoría Duplicada",
-                    "Ya existe una categoría registrada con el nombre '" + nombre + "'.",
-                    Alert.AlertType.ERROR
-            );
-            txtNombre.requestFocus();
-            return;
-        }
+        Categoria categoria = new Categoria(
+                null,
+                txtNombre.getText().trim(),
+                chkActiva.isSelected()
+        );
 
-        // Crear y guardar la categoría
-        Categoria nuevaCategoria = new Categoria(null, nombre, activa);
-        categoriaDAO.agregarCategoria(nuevaCategoria);
-
-        limpiarCampos();
-    }
-
-    private void limpiarCampos() {
-        txtNombre.clear();
-        chkActiva.setSelected(true); // Se deja marcado por defecto como "Activa"
-        txtNombre.requestFocus();
-    }
-
-    private void mostrarAlerta(String titulo, String mensaje, Alert.AlertType tipo) {
-        Alert alert = new Alert(tipo);
-        alert.setTitle(titulo);
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
+        categoriaDAO.agregarCategoria(categoria);
+        mensaje(Alert.AlertType.INFORMATION, "Categoría agregada correctamente.");
+        limpiar();
     }
 
     @FXML
     private void refrescar() {
-        // Vuelve a consultar PostgreSQL y actualiza la lista
         categoriaDAO.cargarCategoriasDesdeBD();
+        cmbFiltroOpciones.getSelectionModel().selectFirst();
+        txtBuscar.clear();
+        limpiar();
     }
 
-    @FXML
-    private void buscarCategoria() {
-        DialogoBuscar.ResultadoBusqueda res = DialogoBuscar.mostrar("Categoría");
-        if (res == null) return;
-
-        Categoria encontrada = null;
-
-        if (res.getCriterio() == DialogoBuscar.CriterioBusqueda.ID) {
-            try {
-                int id = Integer.parseInt(res.getValor());
-                encontrada = categoriaDAO.obtenerPorId(id);
-            } catch (NumberFormatException e) {
-                mostrarAlerta("Error de Formato", "El ID ingresado debe ser un número entero válido.", Alert.AlertType.ERROR);
-                return;
-            }
-        } else {
-            encontrada = categoriaDAO.getListaCategorias().stream()
-                    .filter(c -> c.getNombre() != null && c.getNombre().equalsIgnoreCase(res.getValor()))
-                    .findFirst()
-                    .orElse(null);
-        }
-
-        if (encontrada != null) {
-            // Cargar todos los atributos en el formulario
-            txtNombre.setText(encontrada.getNombre());
-            chkActiva.setSelected(encontrada.isActiva());
-
-            // Seleccionar y enfocar en la tabla
-            tblCategorias.getSelectionModel().select(encontrada);
-            tblCategorias.scrollTo(encontrada);
-
-            // Mostrar todos los atributos
-            String info = String.format("Categoría Encontrada:\n\nID: %d\nNombre: %s\nEstado: %s",
-                    encontrada.getId(), encontrada.getNombre(), encontrada.isActiva() ? "Activa" : "Inactiva");
-            mostrarAlerta("Resultado de Búsqueda", info, Alert.AlertType.INFORMATION);
-        } else {
-            mostrarAlerta("No Encontrado", "No se encontró ninguna categoría con los datos proporcionados.", Alert.AlertType.ERROR);
-        }
+    private void limpiar() {
+        txtNombre.clear();
+        chkActiva.setSelected(true);
     }
 
+    private void mensaje(Alert.AlertType tipo, String texto) {
+        new Alert(tipo, texto, ButtonType.OK).showAndWait();
+    }
 }
