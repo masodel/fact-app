@@ -71,7 +71,7 @@
             <!-- Botones de Acción -->
             <HBox alignment="CENTER_LEFT" spacing="10" VBox.vgrow="NEVER">
                 <Button fx:id="btnGuardar" onAction="#guardar" prefWidth="100" text="Guardar" />
-                <Button fx:id="btnRefrescar" onAction="#refrescar" prefWidth="100" text="Refrescar" />
+                <Button fx:id="btnRefrescar" onAction="#accionBotonSecundario" prefWidth="100" text="Refrescar" />
                 <padding>
                     <Insets bottom="5.0" />
                 </padding>
@@ -80,9 +80,9 @@
             <!-- HBox alineado a la izquierda con Filtro y Búsqueda -->
             <HBox alignment="CENTER_LEFT" spacing="10">
                 <children>
-                    <Label text="Filtro:" style="-fx-font-weight: bold;" />
+                    <Label style="-fx-font-weight: bold;" text="Filtro:" />
                     <ComboBox fx:id="cmbFiltroOpciones" prefWidth="180.0" promptText="Todos los productos" />
-                    <ComboBox fx:id="cmbFiltroCategoria" prefWidth="180.0" promptText="Seleccionar categoría" visible="false" managed="false" />
+                    <ComboBox fx:id="cmbFiltroCategoria" managed="false" prefWidth="180.0" promptText="Seleccionar categoría" visible="false" />
                     <TextField fx:id="txtBuscar" prefWidth="220.0" promptText="Buscar (ID o Nombre)..." />
                 </children>
                 <padding>

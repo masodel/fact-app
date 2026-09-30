@@ -10,12 +10,16 @@ import ni.edu.uam.factapp.dao.CargoDAO;
 import ni.edu.uam.factapp.model.Cargo;
 
 import java.net.URL;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
 public class CargoController implements Initializable {
 
     @FXML private TextField txtNombre;
     @FXML private TextField txtDescripcion;
+
+    @FXML private Button btnAgregar;
+    @FXML private Button btnRefrescar;
 
     @FXML private ComboBox<String> cmbFiltroOpciones;
     @FXML private TextField txtBuscar;
@@ -26,6 +30,7 @@ public class CargoController implements Initializable {
 
     private CargoDAO cargoDAO;
     private FilteredList<Cargo> cargosFiltrados;
+    private Cargo cargoEnEdicion = null;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -34,85 +39,115 @@ public class CargoController implements Initializable {
         colNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
         colDescripcion.setCellValueFactory(new PropertyValueFactory<>("descripcion"));
 
-        // Estructura: ObservableList -> FilteredList -> TableView
         cargosFiltrados = new FilteredList<>(cargoDAO.getListaCargos(), c -> true);
         tblCargos.setItems(cargosFiltrados);
 
-        // Opciones de Filtro
-        cmbFiltroOpciones.setItems(FXCollections.observableArrayList(
-                "Todos los cargos"
-        ));
+        tblCargos.setRowFactory(tv -> {
+            TableRow<Cargo> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                    cargarModoEdicion(row.getItem());
+                }
+            });
+            return row;
+        });
+
+        cmbFiltroOpciones.setItems(FXCollections.observableArrayList("Todos los cargos"));
         cmbFiltroOpciones.getSelectionModel().selectFirst();
 
-        // Listeners para filtro y búsqueda automática en tiempo real
         cmbFiltroOpciones.valueProperty().addListener((obs, oldVal, newVal) -> aplicarFiltrosCombinados());
         txtBuscar.textProperty().addListener((obs, oldVal, newVal) -> aplicarFiltrosCombinados());
+    }
+
+    private void cargarModoEdicion(Cargo c) {
+        if (c == null) return;
+        this.cargoEnEdicion = c;
+
+        txtNombre.setText(c.getNombre());
+        txtDescripcion.setText(c.getDescripcion());
+
+        btnAgregar.setText("Actualizar");
+        btnRefrescar.setText("Eliminar");
+        btnRefrescar.setStyle("-fx-background-color: #d9534f; -fx-text-fill: white;");
+
+        mensaje(Alert.AlertType.INFORMATION, "Modo Edición Activado", "Ha seleccionado el cargo: " + c.getNombre());
+    }
+
+    @FXML
+    private void guardarCargo() {
+        if (txtNombre.getText().isBlank()) {
+            mensaje(Alert.AlertType.WARNING, "Atención", "Ingrese el nombre del cargo.");
+            return;
+        }
+
+        if (cargoEnEdicion == null) {
+            Cargo nuevo = new Cargo(null, txtNombre.getText().trim(), txtDescripcion.getText().trim());
+            cargoDAO.agregarCargo(nuevo);
+            mensaje(Alert.AlertType.INFORMATION, "Éxito", "Cargo agregado correctamente.");
+        } else {
+            cargoEnEdicion.setNombre(txtNombre.getText().trim());
+            cargoEnEdicion.setDescripcion(txtDescripcion.getText().trim());
+            cargoDAO.actualizar(cargoEnEdicion);
+            mensaje(Alert.AlertType.INFORMATION, "Éxito", "Cargo actualizado correctamente.");
+        }
+
+        refrescarYLimpiar();
+    }
+
+    @FXML
+    private void accionBotonSecundario() {
+        if (cargoEnEdicion != null) {
+            Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmacion.setTitle("Confirmar Eliminación");
+            confirmacion.setHeaderText("¿Está seguro de eliminar el cargo?");
+            confirmacion.setContentText("Cargo: " + cargoEnEdicion.getNombre());
+
+            Optional<ButtonType> res = confirmacion.showAndWait();
+            if (res.isPresent() && res.get() == ButtonType.OK) {
+                cargoDAO.eliminar(cargoEnEdicion);
+                mensaje(Alert.AlertType.INFORMATION, "Eliminado", "Cargo eliminado con éxito.");
+                refrescarYLimpiar();
+            }
+        } else {
+            refrescarYLimpiar();
+        }
+    }
+
+    private void refrescarYLimpiar() {
+        cargoDAO.cargarCargosDesdeBD();
+        txtNombre.clear();
+        txtDescripcion.clear();
+
+        cargoEnEdicion = null;
+        btnAgregar.setText("Agregar");
+        btnRefrescar.setText("Refrescar");
+        btnRefrescar.setStyle("");
+
+        aplicarFiltrosCombinados();
     }
 
     private void aplicarFiltrosCombinados() {
         cargosFiltrados.setPredicate(cargo -> {
             if (cargo == null) return false;
 
-            // 1. Criterio de Filtro (Reservado para extensiones)
-            boolean cumpleFiltro = true;
-
-            if (!cumpleFiltro) return false;
-
-            // 2. Criterio de Búsqueda
             String textoBusqueda = txtBuscar.getText();
-            if (textoBusqueda == null || textoBusqueda.trim().isEmpty()) {
-                return true;
-            }
+            if (textoBusqueda == null || textoBusqueda.trim().isEmpty()) return true;
 
             textoBusqueda = textoBusqueda.trim();
 
-            // Si inicia con un número, busca por ID
             if (Character.isDigit(textoBusqueda.charAt(0))) {
-                if (cargo.getId() != null) {
-                    return String.valueOf(cargo.getId()).startsWith(textoBusqueda);
-                }
-                return false;
-            } else { // Si es letra, busca por Nombre
-                if (cargo.getNombre() != null) {
-                    return cargo.getNombre().toLowerCase().contains(textoBusqueda.toLowerCase());
-                }
-                return false;
+                return cargo.getId() != null && String.valueOf(cargo.getId()).startsWith(textoBusqueda);
+            } else {
+                return cargo.getNombre() != null && cargo.getNombre().toLowerCase().contains(textoBusqueda.toLowerCase());
             }
         });
     }
 
-    @FXML
-    private void guardarCargo() {
-        if (txtNombre.getText().isBlank()) {
-            mensaje(Alert.AlertType.WARNING, "Ingrese el nombre del cargo.");
-            return;
-        }
-
-        Cargo cargo = new Cargo(
-                null,
-                txtNombre.getText().trim(),
-                txtDescripcion.getText().trim()
-        );
-
-        cargoDAO.agregarCargo(cargo);
-        mensaje(Alert.AlertType.INFORMATION, "Cargo agregado correctamente.");
-        limpiar();
-    }
-
-    @FXML
-    private void refrescar() {
-        cargoDAO.cargarCargosDesdeBD();
-        cmbFiltroOpciones.getSelectionModel().selectFirst();
-        txtBuscar.clear();
-        limpiar();
-    }
-
-    private void limpiar() {
-        txtNombre.clear();
-        txtDescripcion.clear();
-    }
-
-    private void mensaje(Alert.AlertType tipo, String texto) {
-        new Alert(tipo, texto, ButtonType.OK).showAndWait();
+    private void mensaje(Alert.AlertType tipo, String titulo, String texto) {
+        Alert alert = new Alert(tipo);
+        alert.setTitle(titulo);
+        alert.setHeaderText(null);
+        alert.setContentText(texto);
+        alert.showAndWait();
     }
 }

@@ -17,6 +17,7 @@ import ni.edu.uam.factapp.model.Producto;
 
 import java.io.File;
 import java.math.BigDecimal;
+import java.util.Optional;
 
 public class ProductoController {
 
@@ -28,7 +29,9 @@ public class ProductoController {
     @FXML private CheckBox chkActivo;
     @FXML private ImageView imgProducto;
 
-    // Componentes del HBox de Filtro y Búsqueda
+    @FXML private Button btnGuardar;
+    @FXML private Button btnRefrescar;
+
     @FXML private ComboBox<String> cmbFiltroOpciones;
     @FXML private ComboBox<Categoria> cmbFiltroCategoria;
     @FXML private TextField txtBuscar;
@@ -45,6 +48,8 @@ public class ProductoController {
     private FilteredList<Producto> productosFiltrados;
     private String rutaImagen;
 
+    private Producto productoEnEdicion = null;
+
     @FXML
     private void initialize() {
         colCodigo.setCellValueFactory(new PropertyValueFactory<>("codigo"));
@@ -58,18 +63,25 @@ public class ProductoController {
                 )
         );
 
-        // Cargar categorías activas para el ComboBox del formulario
         FilteredList<Categoria> categoriasActivas = new FilteredList<>(
                 CategoriaDAO.getInstance().getListaCategorias(),
                 Categoria::isActiva
         );
         cmbCategoria.setItems(categoriasActivas);
 
-        // Estructura: ObservableList -> FilteredList -> TableView
         productosFiltrados = new FilteredList<>(productoDAO.getProductos(), p -> true);
         tblProductos.setItems(productosFiltrados);
 
-        // Opciones del ComboBox de filtros según la guía
+        tblProductos.setRowFactory(tv -> {
+            TableRow<Producto> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                    cargarModoEdicion(row.getItem());
+                }
+            });
+            return row;
+        });
+
         cmbFiltroOpciones.setItems(FXCollections.observableArrayList(
                 "Todos los productos",
                 "Productos activos",
@@ -77,11 +89,8 @@ public class ProductoController {
                 "Por categoría"
         ));
         cmbFiltroOpciones.getSelectionModel().selectFirst();
-
-        // Cargar lista de categorías en el ComboBox secundario de filtro
         cmbFiltroCategoria.setItems(CategoriaDAO.getInstance().getListaCategorias());
 
-        // Mostrar u ocultar el ComboBox de categorías según la opción seleccionada
         cmbFiltroOpciones.valueProperty().addListener((obs, oldVal, newVal) -> {
             boolean esPorCategoria = "Por categoría".equals(newVal);
             cmbFiltroCategoria.setVisible(esPorCategoria);
@@ -90,21 +99,145 @@ public class ProductoController {
         });
 
         cmbFiltroCategoria.valueProperty().addListener((obs, oldVal, newVal) -> aplicarFiltrosCombinados());
-
-        // Búsqueda en tiempo real mientras se escribe
         txtBuscar.textProperty().addListener((obs, oldVal, newVal) -> aplicarFiltrosCombinados());
 
         chkActivo.setSelected(true);
     }
 
-    /**
-     * Aplica simultáneamente el filtro seleccionado y la búsqueda dinámica.
-     */
+    private void cargarModoEdicion(Producto p) {
+        if (p == null) return;
+        this.productoEnEdicion = p;
+
+        txtCodigo.setText(p.getCodigo());
+        txtNombre.setText(p.getNombre());
+        cmbCategoria.setValue(p.getCategoria());
+        txtPrecio.setText(p.getPrecioVenta() != null ? p.getPrecioVenta().toString() : "");
+        txtExistencia.setText(String.valueOf(p.getExistencia()));
+        chkActivo.setSelected(p.isActivo());
+
+        if (p.getRutaImagen() != null && !p.getRutaImagen().isBlank()) {
+            this.rutaImagen = p.getRutaImagen();
+            try {
+                imgProducto.setImage(new Image(rutaImagen));
+            } catch (Exception e) {
+                imgProducto.setImage(null);
+            }
+        } else {
+            imgProducto.setImage(null);
+            this.rutaImagen = null;
+        }
+
+        btnGuardar.setText("Actualizar");
+        btnRefrescar.setText("Eliminar");
+        btnRefrescar.setStyle("-fx-background-color: #d9534f; -fx-text-fill: white;");
+
+        mensaje(Alert.AlertType.INFORMATION,
+                "Modo Edición Activado",
+                "Ha seleccionado el producto: " + p.getNombre() + ".\nPuede modificar sus atributos o eliminarlo.");
+    }
+
+    @FXML
+    private void guardar() {
+        if (txtCodigo.getText().isBlank()
+                || txtNombre.getText().isBlank()
+                || txtPrecio.getText().isBlank()
+                || txtExistencia.getText().isBlank()
+                || cmbCategoria.getValue() == null) {
+
+            mensaje(Alert.AlertType.WARNING, "Campos Incompletos", "Complete los campos obligatorios.");
+            return;
+        }
+
+        try {
+            BigDecimal precio = new BigDecimal(txtPrecio.getText().trim());
+            int existencia = Integer.parseInt(txtExistencia.getText().trim());
+
+            if (precio.signum() <= 0 || existencia < 0) {
+                mensaje(Alert.AlertType.WARNING, "Datos Inválidos", "El precio debe ser mayor que cero y la existencia no negativa.");
+                return;
+            }
+
+            if (productoEnEdicion == null) {
+                Producto nuevo = new Producto(
+                        null,
+                        txtCodigo.getText().trim(),
+                        txtNombre.getText().trim(),
+                        cmbCategoria.getValue(),
+                        precio,
+                        existencia,
+                        rutaImagen,
+                        chkActivo.isSelected()
+                );
+                productoDAO.agregar(nuevo);
+                mensaje(Alert.AlertType.INFORMATION, "Éxito", "Producto agregado correctamente.");
+            } else {
+                productoEnEdicion.setCodigo(txtCodigo.getText().trim());
+                productoEnEdicion.setNombre(txtNombre.getText().trim());
+                productoEnEdicion.setCategoria(cmbCategoria.getValue());
+                productoEnEdicion.setPrecioVenta(precio);
+                productoEnEdicion.setExistencia(existencia);
+                productoEnEdicion.setRutaImagen(rutaImagen);
+                productoEnEdicion.setActivo(chkActivo.isSelected());
+
+                productoDAO.actualizar(productoEnEdicion);
+                mensaje(Alert.AlertType.INFORMATION, "Éxito", "Producto actualizado correctamente.");
+            }
+
+            refrescarYLimpiar();
+
+        } catch (NumberFormatException e) {
+            mensaje(Alert.AlertType.ERROR, "Error de Formato", "Precio o existencia no válidos.");
+        }
+    }
+
+    @FXML
+    private void accionBotonSecundario() {
+        if (productoEnEdicion != null) {
+            Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmacion.setTitle("Confirmar Eliminación");
+            confirmacion.setHeaderText("¿Está seguro de eliminar el producto?");
+            confirmacion.setContentText("Producto: " + productoEnEdicion.getNombre() + "\nEsta acción no se puede deshacer.");
+
+            Optional<ButtonType> resultado = confirmacion.showAndWait();
+            if (resultado.isPresent() && resultado.get() == ButtonType.OK) {
+                productoDAO.eliminar(productoEnEdicion);
+                mensaje(Alert.AlertType.INFORMATION, "Eliminado", "El producto se ha eliminado correctamente.");
+                refrescarYLimpiar();
+            }
+        } else {
+            refrescarYLimpiar();
+        }
+    }
+
+    private void refrescarYLimpiar() {
+        CategoriaDAO.getInstance().cargarCategoriasDesdeBD();
+        productoDAO.cargarProductosDesdeBD();
+        cmbFiltroCategoria.setItems(CategoriaDAO.getInstance().getListaCategorias());
+
+        limpiarFormulario();
+        aplicarFiltrosCombinados();
+    }
+
+    private void limpiarFormulario() {
+        txtCodigo.clear();
+        txtNombre.clear();
+        txtPrecio.clear();
+        txtExistencia.clear();
+        cmbCategoria.getSelectionModel().clearSelection();
+        chkActivo.setSelected(true);
+        imgProducto.setImage(null);
+        rutaImagen = null;
+
+        productoEnEdicion = null;
+        btnGuardar.setText("Guardar");
+        btnRefrescar.setText("Refrescar");
+        btnRefrescar.setStyle("");
+    }
+
     private void aplicarFiltrosCombinados() {
         productosFiltrados.setPredicate(producto -> {
             if (producto == null) return false;
 
-            // 1. Evaluar el Criterio del Filtro
             String opcionFiltro = cmbFiltroOpciones.getValue();
             boolean cumpleFiltro = true;
 
@@ -117,16 +250,11 @@ public class ProductoController {
                 if (catSeleccionada != null) {
                     cumpleFiltro = producto.getCategoria() != null
                             && producto.getCategoria().getId().equals(catSeleccionada.getId());
-                } else {
-                    cumpleFiltro = true; // Si no ha elegido categoría aún, muestra todos los de esa rama
                 }
             }
 
-            if (!cumpleFiltro) {
-                return false;
-            }
+            if (!cumpleFiltro) return false;
 
-            // 2. Evaluar el Criterio de Búsqueda
             String textoBusqueda = txtBuscar.getText();
             if (textoBusqueda == null || textoBusqueda.trim().isEmpty()) {
                 return true;
@@ -134,34 +262,12 @@ public class ProductoController {
 
             textoBusqueda = textoBusqueda.trim();
 
-            // Si el texto inicia con un dígito, se asume búsqueda por ID
             if (Character.isDigit(textoBusqueda.charAt(0))) {
-                if (producto.getId() != null) {
-                    return String.valueOf(producto.getId()).startsWith(textoBusqueda);
-                }
-                return false;
+                return producto.getId() != null && String.valueOf(producto.getId()).startsWith(textoBusqueda);
             } else {
-                // De lo contrario, se asume búsqueda por Nombre
-                if (producto.getNombre() != null) {
-                    return producto.getNombre().toLowerCase().contains(textoBusqueda.toLowerCase());
-                }
-                return false;
+                return producto.getNombre() != null && producto.getNombre().toLowerCase().contains(textoBusqueda.toLowerCase());
             }
         });
-    }
-
-    @FXML
-    private void refrescar() {
-        CategoriaDAO.getInstance().cargarCategoriasDesdeBD();
-        productoDAO.cargarProductosDesdeBD();
-        cmbFiltroCategoria.setItems(CategoriaDAO.getInstance().getListaCategorias());
-
-        // Limpiar controles de filtro y búsqueda
-        cmbFiltroOpciones.getSelectionModel().selectFirst();
-        cmbFiltroCategoria.getSelectionModel().clearSelection();
-        txtBuscar.clear();
-
-        limpiar();
     }
 
     @FXML
@@ -172,69 +278,18 @@ public class ProductoController {
                 new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg")
         );
 
-        File archivo = chooser.showOpenDialog(
-                (Stage) txtCodigo.getScene().getWindow()
-        );
-
+        File archivo = chooser.showOpenDialog((Stage) txtCodigo.getScene().getWindow());
         if (archivo != null) {
             rutaImagen = archivo.toURI().toString();
             imgProducto.setImage(new Image(rutaImagen));
         }
     }
 
-    @FXML
-    private void guardar() {
-        if (txtCodigo.getText().isBlank()
-                || txtNombre.getText().isBlank()
-                || txtPrecio.getText().isBlank()
-                || txtExistencia.getText().isBlank()
-                || cmbCategoria.getValue() == null) {
-
-            mensaje(Alert.AlertType.WARNING, "Complete los campos obligatorios.");
-            return;
-        }
-
-        try {
-            BigDecimal precio = new BigDecimal(txtPrecio.getText().trim());
-            int existencia = Integer.parseInt(txtExistencia.getText().trim());
-
-            if (precio.signum() <= 0 || existencia < 0) {
-                mensaje(Alert.AlertType.WARNING, "Precio mayor que cero y existencia no negativa.");
-                return;
-            }
-
-            Producto producto = new Producto(
-                    null,
-                    txtCodigo.getText().trim(),
-                    txtNombre.getText().trim(),
-                    cmbCategoria.getValue(),
-                    precio,
-                    existencia,
-                    rutaImagen,
-                    chkActivo.isSelected()
-            );
-
-            productoDAO.agregar(producto);
-            mensaje(Alert.AlertType.INFORMATION, "Producto agregado correctamente.");
-            limpiar();
-
-        } catch (NumberFormatException e) {
-            mensaje(Alert.AlertType.ERROR, "Precio o existencia no válidos.");
-        }
-    }
-
-    private void limpiar() {
-        txtCodigo.clear();
-        txtNombre.clear();
-        txtPrecio.clear();
-        txtExistencia.clear();
-        cmbCategoria.getSelectionModel().clearSelection();
-        chkActivo.setSelected(true);
-        imgProducto.setImage(null);
-        rutaImagen = null;
-    }
-
-    private void mensaje(Alert.AlertType tipo, String texto) {
-        new Alert(tipo, texto, ButtonType.OK).showAndWait();
+    private void mensaje(Alert.AlertType tipo, String titulo, String texto) {
+        Alert alert = new Alert(tipo);
+        alert.setTitle(titulo);
+        alert.setHeaderText(null);
+        alert.setContentText(texto);
+        alert.showAndWait();
     }
 }

@@ -26,7 +26,6 @@ public class CargoDAO {
         return instance;
     }
 
-    // Carga todos los cargos registrados en PostgreSQL
     public void cargarCargosDesdeBD() {
         this.listaCargos.clear();
         String sql = "SELECT id, nombre, descripcion FROM cargo ORDER BY id ASC";
@@ -48,7 +47,6 @@ public class CargoDAO {
         }
     }
 
-    // Inserta el nuevo cargo en PostgreSQL y actualiza la lista
     public boolean agregarCargo(Cargo cargo) {
         String sql = "INSERT INTO cargo (nombre, descripcion) VALUES (?, ?) RETURNING id";
 
@@ -70,13 +68,51 @@ public class CargoDAO {
         return false;
     }
 
-    // Valida si un nombre de cargo ya existe en la lista
+    public boolean actualizar(Cargo cargo) {
+        String sql = "UPDATE cargo SET nombre = ?, descripcion = ? WHERE id = ?";
+
+        try (Connection conn = DatabaseConnector.connect();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, cargo.getNombre());
+            ps.setString(2, cargo.getDescripcion());
+            ps.setInt(3, cargo.getId());
+
+            int filasAfectadas = ps.executeUpdate();
+            if (filasAfectadas > 0) {
+                cargarCargosDesdeBD();
+                return true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean eliminar(Cargo cargo) {
+        String sql = "DELETE FROM cargo WHERE id = ?";
+
+        try (Connection conn = DatabaseConnector.connect();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, cargo.getId());
+
+            int filasAfectadas = ps.executeUpdate();
+            if (filasAfectadas > 0) {
+                cargarCargosDesdeBD();
+                return true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     public boolean existeNombre(String nombre) {
         return listaCargos.stream()
                 .anyMatch(c -> c.getNombre().equalsIgnoreCase(nombre.trim()));
     }
 
-    // Recupera un objeto Cargo por su ID
     public Cargo obtenerPorId(int id) {
         return listaCargos.stream()
                 .filter(c -> c.getId() != null && c.getId() == id)

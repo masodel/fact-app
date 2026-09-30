@@ -11,12 +11,16 @@ import ni.edu.uam.factapp.dao.CategoriaDAO;
 import ni.edu.uam.factapp.model.Categoria;
 
 import java.net.URL;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
 public class CategoriaController implements Initializable {
 
     @FXML private TextField txtNombre;
     @FXML private CheckBox chkActiva;
+
+    @FXML private Button btnAgregar;
+    @FXML private Button btnRefrescar;
 
     @FXML private ComboBox<String> cmbFiltroOpciones;
     @FXML private TextField txtBuscar;
@@ -27,6 +31,7 @@ public class CategoriaController implements Initializable {
 
     private CategoriaDAO categoriaDAO;
     private FilteredList<Categoria> categoriasFiltradas;
+    private Categoria categoriaEnEdicion = null;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -37,11 +42,19 @@ public class CategoriaController implements Initializable {
                 new SimpleStringProperty(cellData.getValue().isActiva() ? "Sí" : "No")
         );
 
-        // Estructura: ObservableList -> FilteredList -> TableView
         categoriasFiltradas = new FilteredList<>(categoriaDAO.getListaCategorias(), c -> true);
         tblCategorias.setItems(categoriasFiltradas);
 
-        // Configuración de Filtros
+        tblCategorias.setRowFactory(tv -> {
+            TableRow<Categoria> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                    cargarModoEdicion(row.getItem());
+                }
+            });
+            return row;
+        });
+
         cmbFiltroOpciones.setItems(FXCollections.observableArrayList(
                 "Todas las categorías",
                 "Categorías activas",
@@ -49,16 +62,81 @@ public class CategoriaController implements Initializable {
         ));
         cmbFiltroOpciones.getSelectionModel().selectFirst();
 
-        // Listeners para filtro y búsqueda automática en tiempo real
         cmbFiltroOpciones.valueProperty().addListener((obs, oldVal, newVal) -> aplicarFiltrosCombinados());
         txtBuscar.textProperty().addListener((obs, oldVal, newVal) -> aplicarFiltrosCombinados());
+    }
+
+    private void cargarModoEdicion(Categoria c) {
+        if (c == null) return;
+        this.categoriaEnEdicion = c;
+
+        txtNombre.setText(c.getNombre());
+        chkActiva.setSelected(c.isActiva());
+
+        btnAgregar.setText("Actualizar");
+        btnRefrescar.setText("Eliminar");
+        btnRefrescar.setStyle("-fx-background-color: #d9534f; -fx-text-fill: white;");
+
+        mensaje(Alert.AlertType.INFORMATION, "Modo Edición Activado", "Ha seleccionado la categoría: " + c.getNombre());
+    }
+
+    @FXML
+    private void guardarCategoria() {
+        if (txtNombre.getText().isBlank()) {
+            mensaje(Alert.AlertType.WARNING, "Atención", "Ingrese el nombre de la categoría.");
+            return;
+        }
+
+        if (categoriaEnEdicion == null) {
+            Categoria nueva = new Categoria(null, txtNombre.getText().trim(), chkActiva.isSelected());
+            categoriaDAO.agregarCategoria(nueva);
+            mensaje(Alert.AlertType.INFORMATION, "Éxito", "Categoría agregada correctamente.");
+        } else {
+            categoriaEnEdicion.setNombre(txtNombre.getText().trim());
+            categoriaEnEdicion.setActiva(chkActiva.isSelected());
+            categoriaDAO.actualizar(categoriaEnEdicion);
+            mensaje(Alert.AlertType.INFORMATION, "Éxito", "Categoría actualizada correctamente.");
+        }
+
+        refrescarYLimpiar();
+    }
+
+    @FXML
+    private void accionBotonSecundario() {
+        if (categoriaEnEdicion != null) {
+            Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmacion.setTitle("Confirmar Eliminación");
+            confirmacion.setHeaderText("¿Está seguro de eliminar la categoría?");
+            confirmacion.setContentText("Categoría: " + categoriaEnEdicion.getNombre());
+
+            Optional<ButtonType> res = confirmacion.showAndWait();
+            if (res.isPresent() && res.get() == ButtonType.OK) {
+                categoriaDAO.eliminar(categoriaEnEdicion);
+                mensaje(Alert.AlertType.INFORMATION, "Eliminado", "Categoría eliminada con éxito.");
+                refrescarYLimpiar();
+            }
+        } else {
+            refrescarYLimpiar();
+        }
+    }
+
+    private void refrescarYLimpiar() {
+        categoriaDAO.cargarCategoriasDesdeBD();
+        txtNombre.clear();
+        chkActiva.setSelected(true);
+
+        categoriaEnEdicion = null;
+        btnAgregar.setText("Agregar");
+        btnRefrescar.setText("Refrescar");
+        btnRefrescar.setStyle("");
+
+        aplicarFiltrosCombinados();
     }
 
     private void aplicarFiltrosCombinados() {
         categoriasFiltradas.setPredicate(categoria -> {
             if (categoria == null) return false;
 
-            // 1. Criterio de Estado (Filtro)
             String opcionFiltro = cmbFiltroOpciones.getValue();
             boolean cumpleFiltro = true;
 
@@ -70,61 +148,24 @@ public class CategoriaController implements Initializable {
 
             if (!cumpleFiltro) return false;
 
-            // 2. Criterio de Búsqueda
             String textoBusqueda = txtBuscar.getText();
-            if (textoBusqueda == null || textoBusqueda.trim().isEmpty()) {
-                return true;
-            }
+            if (textoBusqueda == null || textoBusqueda.trim().isEmpty()) return true;
 
             textoBusqueda = textoBusqueda.trim();
 
-            // Si inicia con un número, busca por ID
             if (Character.isDigit(textoBusqueda.charAt(0))) {
-                if (categoria.getId() != null) {
-                    return String.valueOf(categoria.getId()).startsWith(textoBusqueda);
-                }
-                return false;
-            } else { // Si es letra, busca por Nombre
-                if (categoria.getNombre() != null) {
-                    return categoria.getNombre().toLowerCase().contains(textoBusqueda.toLowerCase());
-                }
-                return false;
+                return categoria.getId() != null && String.valueOf(categoria.getId()).startsWith(textoBusqueda);
+            } else {
+                return categoria.getNombre() != null && categoria.getNombre().toLowerCase().contains(textoBusqueda.toLowerCase());
             }
         });
     }
 
-    @FXML
-    private void guardarCategoria() {
-        if (txtNombre.getText().isBlank()) {
-            mensaje(Alert.AlertType.WARNING, "Ingrese el nombre de la categoría.");
-            return;
-        }
-
-        Categoria categoria = new Categoria(
-                null,
-                txtNombre.getText().trim(),
-                chkActiva.isSelected()
-        );
-
-        categoriaDAO.agregarCategoria(categoria);
-        mensaje(Alert.AlertType.INFORMATION, "Categoría agregada correctamente.");
-        limpiar();
-    }
-
-    @FXML
-    private void refrescar() {
-        categoriaDAO.cargarCategoriasDesdeBD();
-        cmbFiltroOpciones.getSelectionModel().selectFirst();
-        txtBuscar.clear();
-        limpiar();
-    }
-
-    private void limpiar() {
-        txtNombre.clear();
-        chkActiva.setSelected(true);
-    }
-
-    private void mensaje(Alert.AlertType tipo, String texto) {
-        new Alert(tipo, texto, ButtonType.OK).showAndWait();
+    private void mensaje(Alert.AlertType tipo, String titulo, String texto) {
+        Alert alert = new Alert(tipo);
+        alert.setTitle(titulo);
+        alert.setHeaderText(null);
+        alert.setContentText(texto);
+        alert.showAndWait();
     }
 }

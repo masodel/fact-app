@@ -29,7 +29,6 @@ public class ProductoDAO {
         return productos;
     }
 
-    // Carga los productos usando 'categoria_id'
     public void cargarProductosDesdeBD() {
         this.productos.clear();
         String sql = "SELECT id, codigo, nombre, categoria_id, precio_venta, existencia, ruta_imagen, activo " +
@@ -62,7 +61,6 @@ public class ProductoDAO {
         }
     }
 
-    // Inserta el producto utilizando 'categoria_id'
     public boolean agregar(Producto producto) {
         String sql = "INSERT INTO producto (codigo, nombre, categoria_id, precio_venta, existencia, ruta_imagen, activo) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id";
@@ -81,9 +79,55 @@ public class ProductoDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     producto.setId(rs.getInt("id"));
-                    this.productos.add(producto);
+                    cargarProductosDesdeBD();
                     return true;
                 }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean actualizar(Producto producto) {
+        String sql = "UPDATE producto SET codigo = ?, nombre = ?, categoria_id = ?, precio_venta = ?, " +
+                "existencia = ?, ruta_imagen = ?, activo = ? WHERE id = ?";
+
+        try (Connection conn = DatabaseConnector.connect();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, producto.getCodigo());
+            ps.setString(2, producto.getNombre());
+            ps.setInt(3, producto.getCategoria().getId());
+            ps.setBigDecimal(4, producto.getPrecioVenta());
+            ps.setInt(5, producto.getExistencia());
+            ps.setString(6, producto.getRutaImagen());
+            ps.setBoolean(7, producto.isActivo());
+            ps.setInt(8, producto.getId());
+
+            int filasAfectadas = ps.executeUpdate();
+            if (filasAfectadas > 0) {
+                cargarProductosDesdeBD();
+                return true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean eliminar(Producto producto) {
+        String sql = "DELETE FROM producto WHERE id = ?";
+
+        try (Connection conn = DatabaseConnector.connect();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, producto.getId());
+
+            int filasAfectadas = ps.executeUpdate();
+            if (filasAfectadas > 0) {
+                cargarProductosDesdeBD();
+                return true;
             }
         } catch (SQLException e) {
             e.printStackTrace();

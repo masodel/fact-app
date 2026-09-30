@@ -26,7 +26,6 @@ public class CategoriaDAO {
         return instance;
     }
 
-    // Carga todas las categorías registradas en PostgreSQL
     public void cargarCategoriasDesdeBD() {
         this.listaCategorias.clear();
         String sql = "SELECT id, nombre, activa FROM categoria ORDER BY id ASC";
@@ -48,7 +47,6 @@ public class CategoriaDAO {
         }
     }
 
-    // Inserta la nueva categoría en PostgreSQL y actualiza la lista
     public boolean agregarCategoria(Categoria categoria) {
         String sql = "INSERT INTO categoria (nombre, activa) VALUES (?, ?) RETURNING id";
 
@@ -70,13 +68,51 @@ public class CategoriaDAO {
         return false;
     }
 
-    // Valida si un nombre de categoría ya existe en la lista
+    public boolean actualizar(Categoria categoria) {
+        String sql = "UPDATE categoria SET nombre = ?, activa = ? WHERE id = ?";
+
+        try (Connection conn = DatabaseConnector.connect();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, categoria.getNombre());
+            ps.setBoolean(2, categoria.isActiva());
+            ps.setInt(3, categoria.getId());
+
+            int filasAfectadas = ps.executeUpdate();
+            if (filasAfectadas > 0) {
+                cargarCategoriasDesdeBD();
+                return true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean eliminar(Categoria categoria) {
+        String sql = "DELETE FROM categoria WHERE id = ?";
+
+        try (Connection conn = DatabaseConnector.connect();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, categoria.getId());
+
+            int filasAfectadas = ps.executeUpdate();
+            if (filasAfectadas > 0) {
+                cargarCategoriasDesdeBD();
+                return true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     public boolean existeNombre(String nombre) {
         return listaCategorias.stream()
                 .anyMatch(c -> c.getNombre().equalsIgnoreCase(nombre.trim()));
     }
 
-    // Método que faltaba para recuperar un objeto Categoria por su ID
     public Categoria obtenerPorId(int id) {
         return listaCategorias.stream()
                 .filter(c -> c.getId() != null && c.getId() == id)
