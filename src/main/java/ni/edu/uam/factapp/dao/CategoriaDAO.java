@@ -60,8 +60,7 @@ public class CategoriaDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    categoria.setId(rs.getInt("id"));
-                    this.listaCategorias.add(categoria);
+                    cargarCategoriasDesdeBD();
                     return true;
                 }
             }

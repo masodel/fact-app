@@ -6,6 +6,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import ni.edu.uam.factapp.dao.CargoDAO;
 import ni.edu.uam.factapp.model.Cargo;
+import ni.edu.uam.factapp.util.DialogoBuscar;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -65,6 +66,49 @@ public class CargoController implements Initializable {
         cargoDAO.agregarCargo(nuevoCargo);
 
         limpiarCampos();
+    }
+
+    @FXML
+    private void buscarCargo() {
+        DialogoBuscar.ResultadoBusqueda res = DialogoBuscar.mostrar("Cargo");
+        if (res == null) return;
+
+        Cargo encontrado = null;
+
+        if (res.getCriterio() == DialogoBuscar.CriterioBusqueda.ID) {
+            try {
+                int id = Integer.parseInt(res.getValor());
+                encontrado = cargoDAO.getListaCargos().stream()
+                        .filter(c -> c.getId() != null && c.getId() == id)
+                        .findFirst()
+                        .orElse(null);
+            } catch (NumberFormatException e) {
+                mostrarAlerta("Error de Formato", "El ID ingresado debe ser un número entero válido.", Alert.AlertType.ERROR);
+                return;
+            }
+        } else {
+            encontrado = cargoDAO.getListaCargos().stream()
+                    .filter(c -> c.getNombre() != null && c.getNombre().equalsIgnoreCase(res.getValor()))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        if (encontrado != null) {
+            // Cargar todos los atributos en el formulario
+            txtNombre.setText(encontrado.getNombre());
+            txtDescripcion.setText(encontrado.getDescripcion());
+
+            // Seleccionar y enfocar el registro en la tabla
+            tblCargos.getSelectionModel().select(encontrado);
+            tblCargos.scrollTo(encontrado);
+
+            // Mostrar todos los atributos
+            String info = String.format("Cargo Encontrado:\n\nID: %d\nNombre: %s\nDescripción: %s",
+                    encontrado.getId(), encontrado.getNombre(), encontrado.getDescripcion());
+            mostrarAlerta("Resultado de Búsqueda", info, Alert.AlertType.INFORMATION);
+        } else {
+            mostrarAlerta("No Encontrado", "No se encontró ningún cargo con los datos proporcionados.", Alert.AlertType.ERROR);
+        }
     }
 
     private void limpiarCampos() {

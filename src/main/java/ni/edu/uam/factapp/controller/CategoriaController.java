@@ -7,6 +7,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import ni.edu.uam.factapp.dao.CategoriaDAO;
 import ni.edu.uam.factapp.model.Categoria;
+import ni.edu.uam.factapp.util.DialogoBuscar;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -85,4 +86,51 @@ public class CategoriaController implements Initializable {
         alert.setContentText(mensaje);
         alert.showAndWait();
     }
+
+    @FXML
+    private void refrescar() {
+        // Vuelve a consultar PostgreSQL y actualiza la lista
+        categoriaDAO.cargarCategoriasDesdeBD();
+    }
+
+    @FXML
+    private void buscarCategoria() {
+        DialogoBuscar.ResultadoBusqueda res = DialogoBuscar.mostrar("Categoría");
+        if (res == null) return;
+
+        Categoria encontrada = null;
+
+        if (res.getCriterio() == DialogoBuscar.CriterioBusqueda.ID) {
+            try {
+                int id = Integer.parseInt(res.getValor());
+                encontrada = categoriaDAO.obtenerPorId(id);
+            } catch (NumberFormatException e) {
+                mostrarAlerta("Error de Formato", "El ID ingresado debe ser un número entero válido.", Alert.AlertType.ERROR);
+                return;
+            }
+        } else {
+            encontrada = categoriaDAO.getListaCategorias().stream()
+                    .filter(c -> c.getNombre() != null && c.getNombre().equalsIgnoreCase(res.getValor()))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        if (encontrada != null) {
+            // Cargar todos los atributos en el formulario
+            txtNombre.setText(encontrada.getNombre());
+            chkActiva.setSelected(encontrada.isActiva());
+
+            // Seleccionar y enfocar en la tabla
+            tblCategorias.getSelectionModel().select(encontrada);
+            tblCategorias.scrollTo(encontrada);
+
+            // Mostrar todos los atributos
+            String info = String.format("Categoría Encontrada:\n\nID: %d\nNombre: %s\nEstado: %s",
+                    encontrada.getId(), encontrada.getNombre(), encontrada.isActiva() ? "Activa" : "Inactiva");
+            mostrarAlerta("Resultado de Búsqueda", info, Alert.AlertType.INFORMATION);
+        } else {
+            mostrarAlerta("No Encontrado", "No se encontró ninguna categoría con los datos proporcionados.", Alert.AlertType.ERROR);
+        }
+    }
+
 }

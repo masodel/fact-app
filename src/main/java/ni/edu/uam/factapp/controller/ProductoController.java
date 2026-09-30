@@ -20,6 +20,7 @@ import ni.edu.uam.factapp.dao.CategoriaDAO;
 import ni.edu.uam.factapp.dao.ProductoDAO;
 import ni.edu.uam.factapp.model.Categoria;
 import ni.edu.uam.factapp.model.Producto;
+import ni.edu.uam.factapp.util.DialogoBuscar;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -155,5 +156,80 @@ public class ProductoController {
 
     private void mensaje(Alert.AlertType tipo, String texto) {
         new Alert(tipo, texto, ButtonType.OK).showAndWait();
+    }
+
+    @FXML
+    private void refrescar() {
+        CategoriaDAO.getInstance().cargarCategoriasDesdeBD();
+        productoDAO.cargarProductosDesdeBD();
+    }
+
+    @FXML
+    private void buscarProducto() {
+        DialogoBuscar.ResultadoBusqueda res = DialogoBuscar.mostrar("Producto");
+        if (res == null) return;
+
+        Producto encontrado = null;
+
+        if (res.getCriterio() == DialogoBuscar.CriterioBusqueda.ID) {
+            try {
+                int id = Integer.parseInt(res.getValor());
+                encontrado = productoDAO.getProductos().stream()
+                        .filter(p -> p.getId() != null && p.getId() == id)
+                        .findFirst()
+                        .orElse(null);
+            } catch (NumberFormatException e) {
+                mensaje(Alert.AlertType.ERROR, "El ID ingresado debe ser un número entero válido.");
+                return;
+            }
+        } else {
+            encontrado = productoDAO.getProductos().stream()
+                    .filter(p -> p.getNombre() != null && p.getNombre().equalsIgnoreCase(res.getValor()))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        if (encontrado != null) {
+            // Cargar todos los atributos en los campos de la interfaz
+            txtCodigo.setText(encontrado.getCodigo());
+            txtNombre.setText(encontrado.getNombre());
+            cmbCategoria.setValue(encontrado.getCategoria());
+            txtPrecio.setText(encontrado.getPrecioVenta() != null ? encontrado.getPrecioVenta().toString() : "0.00");
+            txtExistencia.setText(String.valueOf(encontrado.getExistencia()));
+            chkActivo.setSelected(encontrado.isActivo());
+
+            if (encontrado.getRutaImagen() != null && !encontrado.getRutaImagen().isBlank()) {
+                this.rutaImagen = encontrado.getRutaImagen();
+                try {
+                    imgProducto.setImage(new Image(rutaImagen));
+                } catch (Exception e) {
+                    imgProducto.setImage(null);
+                }
+            } else {
+                imgProducto.setImage(null);
+                this.rutaImagen = null;
+            }
+
+            // Seleccionar y enfocar en la TableView
+            tblProductos.getSelectionModel().select(encontrado);
+            tblProductos.scrollTo(encontrado);
+
+            // Mostrar todos los atributos
+            String detalles = String.format(
+                    "Producto Encontrado:\n\nID: %d\nCódigo: %s\nNombre: %s\nCategoría: %s\nPrecio Venta: %s\nExistencia: %d\nRuta Imagen: %s\nEstado: %s",
+                    encontrado.getId(),
+                    encontrado.getCodigo(),
+                    encontrado.getNombre(),
+                    encontrado.getCategoria() != null ? encontrado.getCategoria().getNombre() : "Sin Categoría",
+                    encontrado.getPrecioVenta(),
+                    encontrado.getExistencia(),
+                    encontrado.getRutaImagen() != null ? encontrado.getRutaImagen() : "Ninguna",
+                    encontrado.isActivo() ? "Activo" : "Inactivo"
+            );
+
+            mensaje(Alert.AlertType.INFORMATION, detalles);
+        } else {
+            mensaje(Alert.AlertType.ERROR, "No se encontró ningún producto con los datos ingresados.");
+        }
     }
 }
