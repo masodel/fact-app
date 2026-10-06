@@ -17,6 +17,7 @@
                             <MenuItem fx:id="mnuCategoria" onAction="#abrirCategoria" text="Categoria" />
                             <MenuItem fx:id="mnuCargo" onAction="#abrirCargo" text="Cargo" />
                             <MenuItem fx:id="mnuEmpleado" onAction="#abrirEmpleado" text="Empleado" />
+                            <MenuItem fx:id="destruirTodo" onAction="#limpiarBaseDeDatos" text="DESTRUIR TODO"/>
                         </items>
                     </Menu>
                 </menus>

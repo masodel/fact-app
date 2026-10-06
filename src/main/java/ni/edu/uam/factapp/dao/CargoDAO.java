@@ -119,4 +119,11 @@ public class CargoDAO {
                 .findFirst()
                 .orElse(null);
     }
+
+    // Valida si un nombre de cargo ya existe (ignorando un ID específico en caso de edición)
+    public boolean existeNombre(String nombre, Integer idActual) {
+        return listaCargos.stream()
+                .anyMatch(c -> c.getNombre().equalsIgnoreCase(nombre.trim())
+                        && (idActual == null || !c.getId().equals(idActual)));
+    }
 }

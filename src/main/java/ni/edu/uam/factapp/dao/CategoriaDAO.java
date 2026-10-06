@@ -119,4 +119,11 @@ public class CategoriaDAO {
                 .findFirst()
                 .orElse(null);
     }
+
+    // Valida si un nombre de categoría ya existe (ignorando un ID específico en caso de edición)
+    public boolean existeNombre(String nombre, Integer idActual) {
+        return listaCategorias.stream()
+                .anyMatch(c -> c.getNombre().equalsIgnoreCase(nombre.trim())
+                        && (idActual == null || !c.getId().equals(idActual)));
+    }
 }

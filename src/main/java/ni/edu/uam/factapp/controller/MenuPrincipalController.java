@@ -3,9 +3,11 @@ package ni.edu.uam.factapp.controller;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import ni.edu.uam.factapp.util.DatabaseUtil;
 import ni.edu.uam.factapp.util.SceneManager;
 
 import java.io.IOException;
+import java.util.Optional;
 
 public class MenuPrincipalController {
 
@@ -97,5 +99,43 @@ public class MenuPrincipalController {
         }
     }
 
+    @FXML
+    private void limpiarBaseDeDatos() {
+        Alert confirmacion = new Alert(
+                Alert.AlertType.CONFIRMATION,
+                "¿Está seguro de que desea eliminar TODOS los datos de las tablas? La estructura se mantendrá intacta, pero no se podrá recuperar la información.",
+                ButtonType.YES,
+                ButtonType.NO
+        );
+        confirmacion.setTitle("Confirmar vaciado de Base de Datos");
+        confirmacion.setHeaderText("¡Atención!");
 
+        Optional<ButtonType> respuesta = confirmacion.showAndWait();
+
+        if (respuesta.isPresent() && respuesta.get() == ButtonType.YES) {
+            try {
+                // Ejecuta la consulta SQL masiva
+                DatabaseUtil.vaciarTodasLasTablas();
+
+                Alert exito = new Alert(
+                        Alert.AlertType.INFORMATION,
+                        "Se han eliminado todos los registros de la base de datos con éxito.",
+                        ButtonType.OK
+                );
+                exito.setTitle("Éxito");
+                exito.setHeaderText(null);
+                exito.showAndWait();
+
+            } catch (Exception e) {
+                Alert error = new Alert(
+                        Alert.AlertType.ERROR,
+                        "Error al ejecutar las consultas SQL de eliminación: " + e.getMessage(),
+                        ButtonType.OK
+                );
+                error.setTitle("Error SQL");
+                error.setHeaderText(null);
+                error.showAndWait();
+            }
+        }
+    }
 }

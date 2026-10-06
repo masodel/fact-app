@@ -75,17 +75,28 @@ public class CargoController implements Initializable {
 
     @FXML
     private void guardarCargo() {
-        if (txtNombre.getText().isBlank()) {
+        String nombre = txtNombre.getText().trim();
+
+        if (nombre.isBlank()) {
             mensaje(Alert.AlertType.WARNING, "Atención", "Ingrese el nombre del cargo.");
             return;
         }
 
+        // Obtener ID actual si estamos editando
+        Integer idActual = (cargoEnEdicion != null) ? cargoEnEdicion.getId() : null;
+
+        // Validar duplicado de NOMBRE
+        if (cargoDAO.existeNombre(nombre, idActual)) {
+            mensaje(Alert.AlertType.WARNING, "Nombre Duplicado", "Ya existe un cargo registrado con el nombre: " + nombre);
+            return;
+        }
+
         if (cargoEnEdicion == null) {
-            Cargo nuevo = new Cargo(null, txtNombre.getText().trim(), txtDescripcion.getText().trim());
+            Cargo nuevo = new Cargo(null, nombre, txtDescripcion.getText().trim());
             cargoDAO.agregarCargo(nuevo);
             mensaje(Alert.AlertType.INFORMATION, "Éxito", "Cargo agregado correctamente.");
         } else {
-            cargoEnEdicion.setNombre(txtNombre.getText().trim());
+            cargoEnEdicion.setNombre(nombre);
             cargoEnEdicion.setDescripcion(txtDescripcion.getText().trim());
             cargoDAO.actualizar(cargoEnEdicion);
             mensaje(Alert.AlertType.INFORMATION, "Éxito", "Cargo actualizado correctamente.");

@@ -134,4 +134,19 @@ public class ProductoDAO {
         }
         return false;
     }
+
+    // Valida si un código ya existe (ignorando un ID específico en caso de edición)
+    public boolean existeCodigo(String codigo, Integer idActual) {
+        return productos.stream()
+                .anyMatch(p -> p.getCodigo().equalsIgnoreCase(codigo.trim())
+                        && (idActual == null || !p.getId().equals(idActual)));
+    }
+
+    // Valida si un nombre de producto ya existe (ignorando un ID específico en caso de edición)
+    public boolean existeNombre(String nombre, Integer idActual) {
+        return productos.stream()
+                .anyMatch(p -> p.getNombre().equalsIgnoreCase(nombre.trim())
+                        && (idActual == null || !p.getId().equals(idActual)));
+    }
+
 }

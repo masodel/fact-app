@@ -82,17 +82,28 @@ public class CategoriaController implements Initializable {
 
     @FXML
     private void guardarCategoria() {
-        if (txtNombre.getText().isBlank()) {
+        String nombre = txtNombre.getText().trim();
+
+        if (nombre.isBlank()) {
             mensaje(Alert.AlertType.WARNING, "Atención", "Ingrese el nombre de la categoría.");
             return;
         }
 
+        // Obtener ID actual si estamos editando
+        Integer idActual = (categoriaEnEdicion != null) ? categoriaEnEdicion.getId() : null;
+
+        // Validar duplicado de NOMBRE
+        if (categoriaDAO.existeNombre(nombre, idActual)) {
+            mensaje(Alert.AlertType.WARNING, "Nombre Duplicado", "Ya existe una categoría registrada con el nombre: " + nombre);
+            return;
+        }
+
         if (categoriaEnEdicion == null) {
-            Categoria nueva = new Categoria(null, txtNombre.getText().trim(), chkActiva.isSelected());
+            Categoria nueva = new Categoria(null, nombre, chkActiva.isSelected());
             categoriaDAO.agregarCategoria(nueva);
             mensaje(Alert.AlertType.INFORMATION, "Éxito", "Categoría agregada correctamente.");
         } else {
-            categoriaEnEdicion.setNombre(txtNombre.getText().trim());
+            categoriaEnEdicion.setNombre(nombre);
             categoriaEnEdicion.setActiva(chkActiva.isSelected());
             categoriaDAO.actualizar(categoriaEnEdicion);
             mensaje(Alert.AlertType.INFORMATION, "Éxito", "Categoría actualizada correctamente.");

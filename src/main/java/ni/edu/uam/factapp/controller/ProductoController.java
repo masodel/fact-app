@@ -138,13 +138,27 @@ public class ProductoController {
 
     @FXML
     private void guardar() {
-        if (txtCodigo.getText().isBlank()
-                || txtNombre.getText().isBlank()
-                || txtPrecio.getText().isBlank()
-                || txtExistencia.getText().isBlank()
-                || cmbCategoria.getValue() == null) {
+        String codigo = txtCodigo.getText().trim();
+        String nombre = txtNombre.getText().trim();
 
+        if (codigo.isBlank() || nombre.isBlank() || txtPrecio.getText().isBlank()
+                || txtExistencia.getText().isBlank() || cmbCategoria.getValue() == null) {
             mensaje(Alert.AlertType.WARNING, "Campos Incompletos", "Complete los campos obligatorios.");
+            return;
+        }
+
+        // Obtener ID actual si estamos editando (null si estamos creando)
+        Integer idActual = (productoEnEdicion != null) ? productoEnEdicion.getId() : null;
+
+        // Validar duplicado de CÓDIGO
+        if (productoDAO.existeCodigo(codigo, idActual)) {
+            mensaje(Alert.AlertType.WARNING, "Código Duplicado", "Ya existe un producto registrado con el código: " + codigo);
+            return;
+        }
+
+        // Validar duplicado de NOMBRE
+        if (productoDAO.existeNombre(nombre, idActual)) {
+            mensaje(Alert.AlertType.WARNING, "Nombre Duplicado", "Ya existe un producto registrado con el nombre: " + nombre);
             return;
         }
 
@@ -158,10 +172,11 @@ public class ProductoController {
             }
 
             if (productoEnEdicion == null) {
+                // MODO CREACIÓN
                 Producto nuevo = new Producto(
                         null,
-                        txtCodigo.getText().trim(),
-                        txtNombre.getText().trim(),
+                        codigo,
+                        nombre,
                         cmbCategoria.getValue(),
                         precio,
                         existencia,
@@ -171,8 +186,9 @@ public class ProductoController {
                 productoDAO.agregar(nuevo);
                 mensaje(Alert.AlertType.INFORMATION, "Éxito", "Producto agregado correctamente.");
             } else {
-                productoEnEdicion.setCodigo(txtCodigo.getText().trim());
-                productoEnEdicion.setNombre(txtNombre.getText().trim());
+                // MODO EDICIÓN
+                productoEnEdicion.setCodigo(codigo);
+                productoEnEdicion.setNombre(nombre);
                 productoEnEdicion.setCategoria(cmbCategoria.getValue());
                 productoEnEdicion.setPrecioVenta(precio);
                 productoEnEdicion.setExistencia(existencia);
