@@ -8,6 +8,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import ni.edu.uam.factapp.dao.CategoriaDAO;
+import ni.edu.uam.factapp.dao.ProductoDAO;
 import ni.edu.uam.factapp.model.Categoria;
 
 import java.net.URL;
@@ -125,6 +126,7 @@ public class CategoriaController implements Initializable {
                 categoriaDAO.eliminar(categoriaEnEdicion);
                 mensaje(Alert.AlertType.INFORMATION, "Eliminado", "Categoría eliminada con éxito.");
                 refrescarYLimpiar();
+                ProductoDAO.getInstance().cargarProductosDesdeBD();
             }
         } else {
             refrescarYLimpiar();
